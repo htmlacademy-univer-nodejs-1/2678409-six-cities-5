@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import chalk from 'chalk';
-import { readFileSync, writeFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -281,7 +281,7 @@ const CliCommand = {
 
     Logger.log(chalk.bold('Программа для подготовки данных для REST API сервера.'));
     Logger.log('');
-    Logger.log(chalk.bold('Пример:') + ' npm run cli --<command> [--arguments]');
+    Logger.log(`${chalk.bold('Пример:') } npm run cli --<command> [--arguments]`);
     Logger.log('');
     Logger.section('Команды:');
 
@@ -353,7 +353,7 @@ const CliCommand = {
       console.log(chalk.cyan('Заголовок:       '), chalk.white(offer.title));
       console.log(
         chalk.cyan('Описание:        '),
-        chalk.white(offer.description.substring(0, 50) + '...')
+        chalk.white(`${offer.description.substring(0, 50) }...`)
       );
       console.log(chalk.cyan('Город:           '), chalk.yellow(offer.city));
       console.log(chalk.cyan('Цена:            '), chalk.green(`${offer.price}€`));
