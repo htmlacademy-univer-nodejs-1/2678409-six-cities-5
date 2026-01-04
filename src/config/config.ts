@@ -26,22 +26,21 @@ const configSchema = convict({
   dbHost: {
     doc: 'IP адрес сервера баз данных',
     format: 'ipaddress',
+    default: '127.0.0.1',
     env: 'DB_HOST',
   },
   dbPort: {
     doc: 'Номер порта БД',
     format: 'port',
-    default: 5432,
+    default: 27017,
     env: 'DB_PORT',
   },
   dbUser: {
     doc: 'Пользователь БД',
-    default: 'postgres',
     env: 'DB_USER',
   },
   dbPassword: {
     doc: 'Пароль БД',
-    default: 'root',
     env: 'DB_PASSWORD',
   },
   dbName: {

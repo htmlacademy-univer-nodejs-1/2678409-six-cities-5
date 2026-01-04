@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { injectable, inject } from 'inversify';
 import { Logger } from 'pino';
 import { Config } from '../config/config.js';
+import { Database } from '../core/database.js';
 import { TYPES } from '../core/types.js';
 
 @injectable()
@@ -9,6 +10,7 @@ export class Application {
   constructor(
     @inject(TYPES.Logger) private readonly logger: Logger,
     @inject(TYPES.Config) private readonly config: Config,
+    @inject(TYPES.Database) private readonly database: Database,
   ) {}
 
   public async init(): Promise<void> {
@@ -19,6 +21,9 @@ export class Application {
       ? process.env[portValue.env as string] || portValue
       : portValue;
     this.logger.info(`Сервер слушает на порту: ${port}`);
+    
+    // Подключение к базе данных
+    await this.database.connect();
   }
 
   public async start(): Promise<void> {
@@ -26,6 +31,7 @@ export class Application {
   }
 
   public async stop(): Promise<void> {
+    await this.database.disconnect();
     this.logger.info('Приложение остановлено');
   }
 }
