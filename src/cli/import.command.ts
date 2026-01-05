@@ -138,6 +138,6 @@ export async function importCommand(filePath: string): Promise<void> {
     logger.info('Импорт данных завершён успешно!');
   } catch (error) {
     logger.error({ err: error }, 'Ошибка при импорте данных');
-    process.exit(1);
+    throw error;
   }
 }

@@ -11,7 +11,7 @@ const start = async () => {
   } catch (error) {
     const logger = container.get<Logger>(TYPES.Logger);
     logger.error({ err: error }, 'Критическая ошибка при запуске приложения');
-    process.exit(1);
+    throw error;
   }
 };
 

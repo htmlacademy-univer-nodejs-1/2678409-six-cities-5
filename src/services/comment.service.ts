@@ -11,16 +11,14 @@ export class CommentService implements ICommentService {
   public async create(commentData: CreateCommentData): Promise<IComment> {
     const comment = new CommentModel(commentData);
     const saved = await comment.save();
-    
     // Обновляем количество комментариев и рейтинг предложения
     await this.updateOfferStats(commentData.offerId);
-    
     return saved.toObject() as IComment;
   }
 
   public async findByOfferId(
     offerId: string | Types.ObjectId,
-    limit: number = 50
+    limit = 50
   ): Promise<IComment[]> {
     const comments = await CommentModel
       .find({ offerId })
@@ -28,7 +26,6 @@ export class CommentService implements ICommentService {
       .limit(limit)
       .lean()
       .exec();
-    
     return comments as IComment[];
   }
 
