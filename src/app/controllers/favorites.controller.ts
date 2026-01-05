@@ -48,7 +48,7 @@ export class FavoritesController extends Controller {
   /**
    * Получить все избранные предложения
    */
-  private async index(req: Request, res: Response): Promise<void> {
+  private async index(_req: Request, res: Response): Promise<void> {
     // TODO: Получить userId из токена
     const userId = '507f1f77bcf86cd799439011'; // Mock userId
 

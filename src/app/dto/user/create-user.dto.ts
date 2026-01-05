@@ -5,17 +5,17 @@ import { Expose } from 'class-transformer';
  */
 export class CreateUserDto {
   @Expose()
-  name: string;
+  name!: string;
 
   @Expose()
-  email: string;
+  email!: string;
 
   @Expose()
   avatar?: string;
 
   @Expose()
-  password: string;
+  password!: string;
 
   @Expose()
-  type: 'pro' | 'normal';
+  type!: 'pro' | 'normal';
 }

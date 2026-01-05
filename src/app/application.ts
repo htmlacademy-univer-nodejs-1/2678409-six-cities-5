@@ -109,7 +109,7 @@ export class Application {
       }
     }
 
-    this.logger.info(`Маршруты регистрированы`);
+    this.logger.info('Маршруты регистрированы');
   }
 
   /**
@@ -147,17 +147,28 @@ export class Application {
    * Запуск сервера
    */
   public async start(): Promise<void> {
-    const portValue = this.config.getProperties().port;
+    const port = this.config.get('port') as number;
 
-    // Получаем распределенное значение порта
-    const port = typeof portValue === 'object' && portValue !== null && 'env' in portValue
-      ? parseInt(process.env[(portValue as unknown as { env: string }).env] || '3000', 10)
-      : Number(portValue);
+    return new Promise<void>((resolve, reject) => {
+      // Настраиваем слушание на всех наличных адресах
+      const server = this.expressApp.listen(port, '0.0.0.0', () => {
+        this.logger.info(`Сервер слушает на порту: ${port}`);
+        this.logger.info(`Приложение запустилось`);
+        resolve();
+      });
 
-    // Настраиваем слушание на всех наличных адресах
-    this.expressApp.listen(port, '0.0.0.0', () => {
-      this.logger.info(`Сервер слушает на порту: ${port}`);
-      this.logger.info(`Приложение запустилось`);
+      // Обрабатываем ошибки при запуске сервера
+      server.on('error', (error: NodeJS.ErrnoException) => {
+        if (error.code === 'EADDRINUSE') {
+          this.logger.error(
+            { port, error: error.message },
+            `Порт ${port} уже занят. Закройте другое приложение или измените порт в конфигурации.`
+          );
+        } else {
+          this.logger.error({ error }, 'Ошибка при запуске сервера');
+        }
+        reject(error);
+      });
     });
   }
 

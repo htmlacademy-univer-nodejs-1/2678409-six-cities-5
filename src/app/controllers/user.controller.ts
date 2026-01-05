@@ -6,7 +6,6 @@ import { TYPES } from '../../core/types.js';
 import { IUserService } from '../../services/user.service.interface.js';
 import { Controller } from '../../core/controller.abstract.js';
 import { IRoute } from '../../core/route.interface.js';
-import { CreateUserDto } from '../dto/user/create-user.dto.js';
 import { UserResponseDto } from '../dto/user/user-response.dto.js';
 import { ConflictException, NotFoundException } from '../../core/exception-filter.js';
 

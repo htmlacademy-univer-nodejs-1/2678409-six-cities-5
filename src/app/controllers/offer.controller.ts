@@ -6,10 +6,9 @@ import { TYPES } from '../../core/types.js';
 import { IOfferService } from '../../services/offer.service.interface.js';
 import { Controller } from '../../core/controller.abstract.js';
 import { IRoute } from '../../core/route.interface.js';
-import { CreateOfferDto } from '../dto/offer/create-offer.dto.js';
-import { UpdateOfferDto } from '../dto/offer/update-offer.dto.js';
 import { OfferResponseDto } from '../dto/offer/offer-response.dto.js';
-import { ForbiddenException, NotFoundException } from '../../core/exception-filter.js';
+import { NotFoundException } from '../../core/exception-filter.js';
+import { Types } from 'mongoose';
 
 /**
  * Контроллер для работы с предложениями
@@ -65,9 +64,9 @@ export class OfferController extends Controller {
    */
   private async index(req: Request, res: Response): Promise<void> {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 60;
-    const offers = await this.offerService.findAll(limit);
+    const offers = await this.offerService.findMany(limit);
 
-    const responses = offers.map((offer) =>
+    const responses = offers.map((offer: any) =>
       plainToInstance(
         OfferResponseDto,
         {
@@ -104,7 +103,8 @@ export class OfferController extends Controller {
    */
   private async create(req: Request, res: Response): Promise<void> {
     // TODO: Получить authorId из токена
-    const authorId = '507f1f77bcf86cd799439011'; // Mock userId
+    const authorIdString = '507f1f77bcf86cd799439011'; // Mock userId
+    const authorId = new Types.ObjectId(authorIdString);
 
     const offerData = {
       title: req.body.title,
@@ -211,6 +211,9 @@ export class OfferController extends Controller {
     }
 
     const updatedOffer = await this.offerService.update(id, req.body);
+    if (!updatedOffer) {
+      throw new NotFoundException('Offer not found after update');
+    }
 
     const response = plainToInstance(
       OfferResponseDto,
@@ -265,9 +268,9 @@ export class OfferController extends Controller {
   private async getPremium(req: Request, res: Response): Promise<void> {
     const { city } = req.params;
 
-    const offers = await this.offerService.getPremiumByCity(city);
+    const offers = await this.offerService.findPremiumByCity(city);
 
-    const responses = offers.map((offer) =>
+    const responses = offers.map((offer: any) =>
       plainToInstance(
         OfferResponseDto,
         {

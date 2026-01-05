@@ -20,6 +20,7 @@ const configSchema = convict({
   port: {
     doc: 'Номер порта сервера',
     format: 'port',
+    default: 3000,
     env: 'PORT',
     arg: 'port',
   },

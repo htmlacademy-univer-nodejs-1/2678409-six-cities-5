@@ -5,23 +5,23 @@ import { Expose } from 'class-transformer';
  */
 export class UserResponseDto {
   @Expose()
-  id: string;
+  id!: string;
 
   @Expose()
-  name: string;
+  name!: string;
 
   @Expose()
-  email: string;
+  email!: string;
 
   @Expose()
   avatar?: string;
 
   @Expose()
-  type: 'pro' | 'normal';
+  type!: 'pro' | 'normal';
 
   @Expose()
-  createdAt: string;
+  createdAt!: string;
 
   @Expose()
-  updatedAt: string;
+  updatedAt!: string;
 }

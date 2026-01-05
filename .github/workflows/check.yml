@@ -13,16 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Set up Node.js
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v3
       with:
-        node-version: '16'
+        node-version: '18'
 
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v3
       name: Checkout
 
     - name: Install dependencies
       run: |
-        if [ -f 'package.json' ]; then npm install; else echo 'Skip. The file package.json does not exist'; fi
+        if [ -f 'package.json' ]; then npm install --legacy-peer-deps; else echo 'Skip. The file package.json does not exist'; fi
 
     - name: Run checks
       run: |

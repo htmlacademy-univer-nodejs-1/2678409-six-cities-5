@@ -5,40 +5,40 @@ import { Expose } from 'class-transformer';
  */
 export class CreateOfferDto {
   @Expose()
-  title: string;
+  title!: string;
 
   @Expose()
-  description: string;
+  description!: string;
 
   @Expose()
-  city: string;
+  city!: string;
 
   @Expose()
-  preview: string;
+  preview!: string;
 
   @Expose()
-  images: string[];
+  images!: string[];
 
   @Expose()
-  isPremium: boolean;
+  isPremium!: boolean;
 
   @Expose()
-  type: 'apartment' | 'house' | 'room' | 'hotel';
+  type!: 'apartment' | 'house' | 'room' | 'hotel';
 
   @Expose()
-  bedrooms: number;
+  bedrooms!: number;
 
   @Expose()
-  guests: number;
+  guests!: number;
 
   @Expose()
-  price: number;
+  price!: number;
 
   @Expose()
-  amenities: string[];
+  amenities!: string[];
 
   @Expose()
-  coordinates: {
+  coordinates!: {
     latitude: number;
     longitude: number;
   };
