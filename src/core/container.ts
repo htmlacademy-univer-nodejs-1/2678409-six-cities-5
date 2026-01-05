@@ -8,10 +8,12 @@ import { Database } from './database.js';
 import { UserService } from '../services/user.service.js';
 import { OfferService } from '../services/offer.service.js';
 import { CityService } from '../services/city.service.js';
+import { CommentService } from '../services/comment.service.js';
 import { ImportService } from '../cli/import.service.js';
 import { IUserService } from '../services/user.service.interface.js';
 import { IOfferService } from '../services/offer.service.interface.js';
 import { ICityService } from '../services/city.service.interface.js';
+import { ICommentService } from '../services/comment.service.interface.js';
 import { TYPES } from './types.js';
 
 const container = new Container();
@@ -46,6 +48,11 @@ container
 container
   .bind<ICityService>(TYPES.CityService)
   .to(CityService)
+  .inSingletonScope();
+
+container
+  .bind<ICommentService>(TYPES.CommentService)
+  .to(CommentService)
   .inSingletonScope();
 
 // Регистрация ImportService

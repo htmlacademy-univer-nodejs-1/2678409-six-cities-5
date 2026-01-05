@@ -55,7 +55,6 @@ export class ImportService {
         try {
           // Создаем или находим город
           let city = await this.cityService.findByName(offerData.city);
-          
           if (!city) {
             city = await this.cityService.create({
               name: offerData.city,
@@ -69,12 +68,17 @@ export class ImportService {
 
           // Создаем или находим пользователя
           let user = await this.userService.findByEmail(offerData.authorEmail);
-          
           if (!user) {
+            // Для импорта используем временный пароль (в реальном приложении пароль должен быть установлен отдельно)
+            // Используем простой хеш email как временный пароль
+            // eslint-disable-next-line node/no-unsupported-features/es-syntax
+            const crypto = await import('node:crypto');
+            const passwordHash = crypto.createHash('sha256').update(offerData.authorEmail).digest('hex');
             user = await this.userService.create({
               name: offerData.authorName,
               email: offerData.authorEmail,
               avatar: offerData.authorAvatar,
+              passwordHash,
               type: offerData.authorType,
             });
             this.logger.debug(`Создан пользователь: ${user.email}`);
@@ -89,8 +93,7 @@ export class ImportService {
             preview: offerData.preview,
             images: offerData.images,
             isPremium: offerData.isPremium,
-            isFavorite: offerData.isFavorite,
-            rating: offerData.rating,
+            rating: offerData.rating || 0,
             type: offerData.type,
             bedrooms: offerData.bedrooms,
             guests: offerData.guests,
@@ -101,7 +104,7 @@ export class ImportService {
               latitude: offerData.latitude,
               longitude: offerData.longitude,
             },
-            commentCount: offerData.commentCount,
+            commentCount: offerData.commentCount || 0,
           });
 
           importedCount++;

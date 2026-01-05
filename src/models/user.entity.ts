@@ -6,7 +6,9 @@ export interface IUser {
   name: string;
   email: string;
   avatar?: string | null;
+  passwordHash: string;
   type: 'pro' | 'normal';
+  favoriteOffers: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -15,7 +17,9 @@ export type CreateUserData = {
   name: string;
   email: string;
   avatar?: string;
+  passwordHash: string;
   type: 'pro' | 'normal';
+  favoriteOffers?: mongoose.Types.ObjectId[];
 };
 
 const userSchema = new Schema(
@@ -32,10 +36,19 @@ const userSchema = new Schema(
     avatar: {
       type: String,
     },
+    passwordHash: {
+      type: String,
+      required: true,
+    },
     type: {
       type: String,
       enum: ['pro', 'normal'],
       required: true,
+    },
+    favoriteOffers: {
+      type: [Schema.Types.ObjectId],
+      ref: 'Offer',
+      default: [],
     },
   },
   {
