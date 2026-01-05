@@ -8,4 +8,8 @@ export const TYPES = {
   CityService: Symbol.for('CityService'),
   CommentService: Symbol.for('CommentService'),
   ImportService: Symbol.for('ImportService'),
+  UserController: Symbol.for('UserController'),
+  OfferController: Symbol.for('OfferController'),
+  FavoritesController: Symbol.for('FavoritesController'),
+  ExceptionFilter: Symbol.for('ExceptionFilter'),
 };
