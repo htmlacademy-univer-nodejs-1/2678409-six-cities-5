@@ -6,5 +6,6 @@ export const TYPES = {
   UserService: Symbol.for('UserService'),
   OfferService: Symbol.for('OfferService'),
   CityService: Symbol.for('CityService'),
+  CommentService: Symbol.for('CommentService'),
   ImportService: Symbol.for('ImportService'),
 };

@@ -10,7 +10,6 @@ export interface IOffer {
   preview: string;
   images: string[];
   isPremium: boolean;
-  isFavorite: boolean;
   rating: number;
   type: 'apartment' | 'house' | 'room' | 'hotel';
   bedrooms: number;
@@ -35,7 +34,6 @@ export type CreateOfferData = {
   preview: string;
   images: string[];
   isPremium: boolean;
-  isFavorite: boolean;
   rating: number;
   type: 'apartment' | 'house' | 'room' | 'hotel';
   bedrooms: number;
@@ -47,8 +45,10 @@ export type CreateOfferData = {
     latitude: number;
     longitude: number;
   };
-  commentCount: number;
+  commentCount?: number;
 };
+
+export type UpdateOfferData = Partial<Omit<CreateOfferData, 'authorId' | 'commentCount'>>;
 
 const offerSchema = new Schema(
   {
@@ -80,13 +80,10 @@ const offerSchema = new Schema(
       type: Boolean,
       required: true,
     },
-    isFavorite: {
-      type: Boolean,
-      required: true,
-    },
     rating: {
       type: Number,
       required: true,
+      default: 0,
     },
     type: {
       type: String,
