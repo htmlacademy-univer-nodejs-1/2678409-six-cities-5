@@ -4,42 +4,42 @@ import { Expose } from 'class-transformer';
  * DTO для создания нового предложения
  */
 export class CreateOfferDto {
-  @Expose()
-  title!: string;
+    @Expose()
+      title!: string;
 
-  @Expose()
-  description!: string;
+    @Expose()
+      description!: string;
 
-  @Expose()
-  city!: string;
+    @Expose()
+      city!: string;
 
-  @Expose()
-  preview!: string;
+    @Expose()
+      preview!: string;
 
-  @Expose()
-  images!: string[];
+    @Expose()
+      images!: string[];
 
-  @Expose()
-  isPremium!: boolean;
+    @Expose()
+      isPremium!: boolean;
 
-  @Expose()
-  type!: 'apartment' | 'house' | 'room' | 'hotel';
+    @Expose()
+      type!: 'apartment' | 'house' | 'room' | 'hotel';
 
-  @Expose()
-  bedrooms!: number;
+    @Expose()
+      bedrooms!: number;
 
-  @Expose()
-  guests!: number;
+    @Expose()
+      guests!: number;
 
-  @Expose()
-  price!: number;
+    @Expose()
+      price!: number;
 
-  @Expose()
-  amenities!: string[];
+    @Expose()
+      amenities!: string[];
 
-  @Expose()
-  coordinates!: {
-    latitude: number;
-    longitude: number;
-  };
+    @Expose()
+      coordinates!: {
+        latitude: number;
+        longitude: number;
+    };
 }

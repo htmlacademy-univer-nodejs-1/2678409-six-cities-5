@@ -56,5 +56,6 @@ const userSchema = new Schema(
   }
 );
 
-// @ts-ignore - Type instantiation is excessively deep
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error - Type instantiation is excessively deep
 export const UserModel = mongoose.model('User', userSchema);

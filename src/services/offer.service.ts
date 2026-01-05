@@ -19,14 +19,14 @@ export class OfferService implements IOfferService {
     return offer as IOffer | null;
   }
 
-  public async findMany(limit: number = 60): Promise<IOffer[]> {
+  public async findMany(limit = 60): Promise<IOffer[]> {
     const offers = await OfferModel
       .find()
       .sort({ date: -1 })
       .limit(limit)
       .lean()
       .exec();
-    
+
     return offers as IOffer[];
   }
 
@@ -48,32 +48,32 @@ export class OfferService implements IOfferService {
       .findByIdAndUpdate(id, offerData, { new: true })
       .lean()
       .exec();
-    
+
     return offer as IOffer | null;
   }
 
   public async delete(id: string | Types.ObjectId): Promise<void> {
     // Удаляем все комментарии к предложению
     await this.commentService.deleteByOfferId(id);
-    
+
     // Удаляем предложение
     await OfferModel.findByIdAndDelete(id).exec();
   }
 
-  public async findPremiumByCity(city: string, limit: number = 3): Promise<IOffer[]> {
+  public async findPremiumByCity(city: string, limit = 3): Promise<IOffer[]> {
     const offers = await OfferModel
       .find({ city, isPremium: true })
       .sort({ date: -1 })
       .limit(limit)
       .lean()
       .exec();
-    
+
     return offers as IOffer[];
   }
 
   public async findFavorites(userId: string | Types.ObjectId): Promise<IOffer[]> {
     const favoriteOfferIds = await this.userService.getFavoriteOffers(userId);
-    
+
     if (favoriteOfferIds.length === 0) {
       return [];
     }
@@ -83,7 +83,7 @@ export class OfferService implements IOfferService {
       .sort({ date: -1 })
       .lean()
       .exec();
-    
+
     return offers as IOffer[];
   }
 
@@ -92,11 +92,11 @@ export class OfferService implements IOfferService {
     stats: { commentCount?: number; rating?: number }
   ): Promise<void> {
     const updateData: Record<string, number> = {};
-    
+
     if (stats.commentCount !== undefined) {
       updateData.commentCount = stats.commentCount;
     }
-    
+
     if (stats.rating !== undefined) {
       updateData.rating = stats.rating;
     }

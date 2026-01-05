@@ -9,6 +9,7 @@ import { IRoute } from '../../core/route.interface.js';
 import { OfferResponseDto } from '../dto/offer/offer-response.dto.js';
 import { NotFoundException } from '../../core/exception-filter.js';
 import { Types } from 'mongoose';
+import { IOffer } from '../../models/offer.entity.js';
 
 /**
  * Контроллер для работы с предложениями
@@ -66,7 +67,7 @@ export class OfferController extends Controller {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 60;
     const offers = await this.offerService.findMany(limit);
 
-    const responses = offers.map((offer: any) =>
+    const responses = offers.map((offer: IOffer) =>
       plainToInstance(
         OfferResponseDto,
         {
@@ -270,7 +271,7 @@ export class OfferController extends Controller {
 
     const offers = await this.offerService.findPremiumByCity(city);
 
-    const responses = offers.map((offer: any) =>
+    const responses = offers.map((offer: IOffer) =>
       plainToInstance(
         OfferResponseDto,
         {

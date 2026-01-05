@@ -23,7 +23,7 @@ export class HttpException extends Error {
  * Ответ о неявного найденного ресурсе
  */
 export class NotFoundException extends HttpException {
-  constructor(message: string = 'Resource not found') {
+  constructor(message = 'Resource not found') {
     super(StatusCodes.NOT_FOUND, message);
     Object.setPrototypeOf(this, NotFoundException.prototype);
   }
@@ -33,7 +33,7 @@ export class NotFoundException extends HttpException {
  * Ответ о конфликте
  */
 export class ConflictException extends HttpException {
-  constructor(message: string = 'Conflict') {
+  constructor(message = 'Conflict') {
     super(StatusCodes.CONFLICT, message);
     Object.setPrototypeOf(this, ConflictException.prototype);
   }
@@ -43,7 +43,7 @@ export class ConflictException extends HttpException {
  * Ответ о неавторизованном доступе
  */
 export class UnauthorizedException extends HttpException {
-  constructor(message: string = 'Unauthorized') {
+  constructor(message = 'Unauthorized') {
     super(StatusCodes.UNAUTHORIZED, message);
     Object.setPrototypeOf(this, UnauthorizedException.prototype);
   }
@@ -53,7 +53,7 @@ export class UnauthorizedException extends HttpException {
  * Ответ о запрете доступа
  */
 export class ForbiddenException extends HttpException {
-  constructor(message: string = 'Forbidden') {
+  constructor(message = 'Forbidden') {
     super(StatusCodes.FORBIDDEN, message);
     Object.setPrototypeOf(this, ForbiddenException.prototype);
   }

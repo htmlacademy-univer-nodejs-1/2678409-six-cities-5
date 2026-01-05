@@ -17,13 +17,13 @@ export class Database {
       // Получаем значения из конфигурации через getProperties()
       // и извлекаем реальные значения
       const props = this.config.getProperties();
-      
+
       // Для значений с default - они уже распарсены
       // Для значений без default - может быть undefined или объект
       const host = typeof props.dbHost === 'string' ? props.dbHost : '127.0.0.1';
       const port = typeof props.dbPort === 'number' ? props.dbPort : 27017;
       const name = typeof props.dbName === 'string' ? props.dbName : 'six-cities';
-      
+
       // Для опциональных значений проверяем, что это не объект конфигурации
       let user: string | undefined;
       if (props.dbUser && typeof props.dbUser === 'string') {
@@ -34,7 +34,7 @@ export class Database {
         const envValue = process.env[envKey];
         user = (envValue && typeof envValue === 'string') ? envValue : undefined;
       }
-      
+
       let password: string | undefined;
       if (props.dbPassword && typeof props.dbPassword === 'string') {
         password = props.dbPassword;
@@ -44,7 +44,7 @@ export class Database {
         const envValue = process.env[envKey];
         password = (envValue && typeof envValue === 'string') ? envValue : undefined;
       }
-      
+
       // Финальная проверка - убеждаемся, что user и password - строки или undefined
       // Также проверяем, что они не пустые
       if (user && (typeof user !== 'string' || user.trim() === '')) {
@@ -69,7 +69,7 @@ export class Database {
       }
 
       this.logger.debug(`Подключение к: ${connectionString.replace(/\/\/.*@/, '//***:***@')}`);
-      
+
       await mongoose.connect(connectionString, {
         authSource: user && password ? 'admin' : undefined,
       });

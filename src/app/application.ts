@@ -153,7 +153,7 @@ export class Application {
       // Настраиваем слушание на всех наличных адресах
       const server = this.expressApp.listen(port, '0.0.0.0', () => {
         this.logger.info(`Сервер слушает на порту: ${port}`);
-        this.logger.info(`Приложение запустилось`);
+        this.logger.info('Приложение запустилось');
         resolve();
       });
 
@@ -162,7 +162,7 @@ export class Application {
         if (error.code === 'EADDRINUSE') {
           this.logger.error(
             { port, error: error.message },
-            `Порт ${port} уже занят. Закройте другое приложение или измените порт в конфигурации.`
+            `Порт ${port} уже занят. Закройте другое приложение или измените порт в конфигурации.`,
           );
         } else {
           this.logger.error({ error }, 'Ошибка при запуске сервера');
