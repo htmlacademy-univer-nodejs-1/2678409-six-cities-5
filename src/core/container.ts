@@ -10,6 +10,10 @@ import { OfferService } from '../services/offer.service.js';
 import { CityService } from '../services/city.service.js';
 import { CommentService } from '../services/comment.service.js';
 import { ImportService } from '../cli/import.service.js';
+import { UserController } from '../app/controllers/user.controller.js';
+import { OfferController } from '../app/controllers/offer.controller.js';
+import { FavoritesController } from '../app/controllers/favorites.controller.js';
+import { ExceptionFilter } from './exception-filter.js';
 import { IUserService } from '../services/user.service.interface.js';
 import { IOfferService } from '../services/offer.service.interface.js';
 import { ICityService } from '../services/city.service.interface.js';
@@ -59,6 +63,28 @@ container
 container
   .bind<ImportService>(TYPES.ImportService)
   .to(ImportService)
+  .inSingletonScope();
+
+// Регистрация контроллеров
+container
+  .bind<UserController>(TYPES.UserController)
+  .to(UserController)
+  .inSingletonScope();
+
+container
+  .bind<OfferController>(TYPES.OfferController)
+  .to(OfferController)
+  .inSingletonScope();
+
+container
+  .bind<FavoritesController>(TYPES.FavoritesController)
+  .to(FavoritesController)
+  .inSingletonScope();
+
+// Регистрация ExceptionFilter
+container
+  .bind<ExceptionFilter>(TYPES.ExceptionFilter)
+  .to(ExceptionFilter)
   .inSingletonScope();
 
 // Регистрация Application
