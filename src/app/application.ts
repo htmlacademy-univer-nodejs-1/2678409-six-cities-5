@@ -7,7 +7,10 @@ import { Config } from '../config/config.js';
 import { Database } from '../core/database.js';
 import { TYPES } from '../core/types.js';
 import { IController } from '../core/route.interface.js';
-import { ExceptionFilter } from '../core/exception-filter.js';
+import { ExceptionFilter, HttpException } from '../core/exception-filter.js';
+import { UserController } from './controllers/user.controller.js';
+import { OfferController } from './controllers/offer.controller.js';
+import { FavoritesController } from './controllers/favorites.controller.js';
 
 /**
  * Основное приложение
@@ -21,6 +24,10 @@ export class Application {
     @inject(TYPES.Logger) private readonly logger: Logger,
     @inject(TYPES.Config) private readonly config: Config,
     @inject(TYPES.Database) private readonly database: Database,
+    @inject(TYPES.UserController) private readonly userController: UserController,
+    @inject(TYPES.OfferController) private readonly offerController: OfferController,
+    @inject(TYPES.FavoritesController) private readonly favoritesController: FavoritesController,
+    @inject(TYPES.ExceptionFilter) private readonly exceptionFilter: ExceptionFilter,
   ) {
     // Инициализируем Express приложение
     this.expressApp = express();
@@ -65,9 +72,11 @@ export class Application {
    * Регистрация контроллеров и маршрутов
    */
   private registerRoutes(): void {
-    // Получаем контроллеры из DI контейнера
+    // Получаем контроллеры
     const controllers: IController[] = [
-      // Нужно добавить контроллеры в секции registerRoutes
+      this.userController,
+      this.offerController,
+      this.favoritesController,
     ];
 
     // Регистрируем каждый контроллер
@@ -107,13 +116,16 @@ export class Application {
    * Регистрация фильтра ошибок
    */
   private registerExceptionFilter(): void {
-    // Получаем эксемпляр фильтра исключений из DI
-    // Нюжно добавить в DI контейнер
-    // const exceptionFilter = container.get<ExceptionFilter>(TYPES.ExceptionFilter);
-
-    // На исключительные события
+    // Обычные middleware для обработки ошибок
     this.expressApp.use(
       (err: Error, _req: Request, res: Response, _next: NextFunction) => {
+        // Проверим, является ли это HttpException
+        if (err instanceof HttpException) {
+          this.exceptionFilter.catch(err, _req, res, _next);
+          return;
+        }
+
+        // Не HttpException - логируем и отправляем 500
         this.logger.error(
           {
             error: err,
