@@ -5,7 +5,12 @@
 /dist/
 /docs/
 .idea/*
-
+generated.tsv
 .DS_Store
 coverage
 *.log
+.42c/scan/six-cities-api/scanconf.json
+test-data2.tsv
+test-data.tsv
+.42c/conf.yaml
+.env

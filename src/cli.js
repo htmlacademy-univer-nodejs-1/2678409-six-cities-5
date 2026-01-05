@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import chalk from 'chalk';
-import { readFileSync, writeFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -245,12 +245,23 @@ const DataGenerator = {
       'guests',
       'price',
       'amenities',
+      'authorName',
+      'authorEmail',
+      'authorAvatar',
+      'authorType',
+      'latitude',
+      'longitude',
       'commentCount',
     ];
 
     const lines = [headers.join('\t')];
 
     offers.forEach((offer) => {
+      const city = CITY_COORDINATES.find((c) => c.name === offer.city);
+      const authorName = `User ${getRandomInt(1, 100)}`;
+      const authorEmail = `user${getRandomInt(1, 100)}@example.com`;
+      const authorType = getRandomInt(0, 1) === 1 ? 'pro' : 'normal';
+      
       const values = [
         offer.title,
         offer.description,
@@ -266,6 +277,12 @@ const DataGenerator = {
         offer.guests,
         offer.price,
         offer.amenities,
+        authorName,
+        authorEmail,
+        `https://api.example.com/avatars/${authorName.toLowerCase().replace(' ', '_')}.jpg`,
+        authorType,
+        city ? city.latitude.toString() : '0',
+        city ? city.longitude.toString() : '0',
         offer.commentCount,
       ];
       lines.push(values.join('\t'));
@@ -281,7 +298,7 @@ const CliCommand = {
 
     Logger.log(chalk.bold('Программа для подготовки данных для REST API сервера.'));
     Logger.log('');
-    Logger.log(chalk.bold('Пример:') + ' npm run cli --<command> [--arguments]');
+    Logger.log(`${chalk.bold('Пример:') } npm run cli <command> [arguments]`);
     Logger.log('');
     Logger.section('Команды:');
 
@@ -296,7 +313,7 @@ const CliCommand = {
       },
       {
         command: '--import <path>',
-        description: 'импортирует данные из TSV',
+        description: 'импортирует данные из TSV в MongoDB',
       },
       {
         command: '--generate <n> <path> <url>',
@@ -353,7 +370,7 @@ const CliCommand = {
       console.log(chalk.cyan('Заголовок:       '), chalk.white(offer.title));
       console.log(
         chalk.cyan('Описание:        '),
-        chalk.white(offer.description.substring(0, 50) + '...')
+        chalk.white(`${offer.description.substring(0, 50) }...`)
       );
       console.log(chalk.cyan('Город:           '), chalk.yellow(offer.city));
       console.log(chalk.cyan('Цена:            '), chalk.green(`${offer.price}€`));
@@ -501,7 +518,14 @@ function main() {
       ? parsedArgs['import'][0]
       : parsedArgs['import'];
 
-    CliCommand.importData(filePath);
+    // Используем TypeScript команду импорта
+    // Параметры подключения к БД берутся из переменных окружения
+    import('../dist/cli/import.command.js').then(({ importCommand }) => {
+      importCommand(filePath).catch((error) => {
+        console.error('Ошибка при импорте:', error);
+        process.exit(1);
+      });
+    });
   } else if (parsedArgs['generate'] !== undefined) {
     const generateParams = Array.isArray(parsedArgs['generate'])
       ? parsedArgs['generate']

@@ -1,10 +1,20 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "declaration": true,
+    "module": "node16",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
     "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "moduleResolution": "node16",
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
@@ -13,27 +23,11 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "importHelpers": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
     "sourceMap": true,
-    "outDir": "./dist",
-    "emitDecoratorMetadata": true,
-    "types": [
-      "node",
-    ],
-    "lib": [
-      "ESNext"
-    ]
+    "types": ["node"]
   },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "**/*.test.ts"
-  ],
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "**/*.test.ts"],
   "ts-node": {
     "esm": true
   }
