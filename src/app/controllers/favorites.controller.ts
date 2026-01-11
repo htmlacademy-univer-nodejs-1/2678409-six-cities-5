@@ -9,6 +9,8 @@ import { Controller } from '../../core/controller.abstract.js';
 import { IRoute } from '../../core/route.interface.js';
 import { OfferResponseDto } from '../dto/offer/offer-response.dto.js';
 import { NotFoundException } from '../../core/exception-filter.js';
+import { DocumentExistsMiddlewareFactory } from '../middleware/document-exists.factory.js';
+import { Logger } from 'pino';
 
 /**
  * Контроллер для работы с избранными предложениями
@@ -17,7 +19,8 @@ import { NotFoundException } from '../../core/exception-filter.js';
 export class FavoritesController extends Controller {
   constructor(
     @inject(TYPES.OfferService) private readonly offerService: IOfferService,
-    @inject(TYPES.UserService) private readonly userService: IUserService
+    @inject(TYPES.UserService) private readonly userService: IUserService,
+    @inject(TYPES.Logger) private readonly logger: Logger
   ) {
     super('/favorites');
   }
@@ -26,6 +29,13 @@ export class FavoritesController extends Controller {
    * Получить все маршруты контроллера
    */
   public getRoutes(): IRoute[] {
+    // Создаем middleware для проверки существования предложения
+    const documentExistsMiddleware = DocumentExistsMiddlewareFactory.create(
+      this.offerService,
+      'offerId',
+      this.logger
+    );
+
     return [
       {
         path: `${this.controllerRoute}`,
@@ -35,14 +45,38 @@ export class FavoritesController extends Controller {
       {
         path: `${this.controllerRoute}/:offerId`,
         method: 'post',
-        handler: this.add.bind(this),
+        // Добавляем middleware проверки существования предложения
+        handler: this.wrapMiddleware(
+          documentExistsMiddleware.execute.bind(documentExistsMiddleware),
+          this.add.bind(this)
+        ),
       },
       {
         path: `${this.controllerRoute}/:offerId`,
         method: 'delete',
-        handler: this.remove.bind(this),
+        // Добавляем middleware проверки существования предложения
+        handler: this.wrapMiddleware(
+          documentExistsMiddleware.execute.bind(documentExistsMiddleware),
+          this.remove.bind(this)
+        ),
       },
     ];
+  }
+
+  /**
+   * Вспомогательный метод для оборачивания middleware в обработчик маршрута
+   */
+  private wrapMiddleware(
+    middleware: (req: Request, res: Response, next: Function) => Promise<void> | void,
+    handler: (req: Request, res: Response) => Promise<void>
+  ): (req: Request, res: Response) => Promise<void> {
+    return async (req: Request, res: Response) => {
+      return new Promise<void>((resolve, reject) => {
+        middleware(req, res, () => {
+          handler(req, res).then(resolve).catch(reject);
+        });
+      });
+    };
   }
 
   /**
@@ -88,13 +122,14 @@ export class FavoritesController extends Controller {
 
   /**
    * Добавить в избранные
+   * Вмиддлвер уже проверила существование предложения
    */
   private async add(req: Request, res: Response): Promise<void> {
     const { offerId } = req.params;
     // TODO: Получить userId из токена
     const userId = '507f1f77bcf86cd799439011'; // Mock userId
 
-    // Проверяем, существует ли предложение
+    // От срежости - middleware юверила существование
     const offer = await this.offerService.findById(offerId);
     if (!offer) {
       throw new NotFoundException('Offer not found');
@@ -135,13 +170,14 @@ export class FavoritesController extends Controller {
 
   /**
    * Удалить из избранных
+   * Вмиддлвер уже проверила существование предложения
    */
   private async remove(req: Request, res: Response): Promise<void> {
     const { offerId } = req.params;
     // TODO: Получить userId из токена
     const userId = '507f1f77bcf86cd799439011'; // Mock userId
 
-    // Проверяем, существует ли предложение
+    // От срежости - middleware юверила существование
     const offer = await this.offerService.findById(offerId);
     if (!offer) {
       throw new NotFoundException('Offer not found');
