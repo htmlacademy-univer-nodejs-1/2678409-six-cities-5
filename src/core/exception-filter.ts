@@ -60,6 +60,16 @@ export class ForbiddenException extends HttpException {
 }
 
 /**
+ * Ответ о некорректном запросе
+ */
+export class BadRequestException extends HttpException {
+  constructor(message = 'Bad Request') {
+    super(StatusCodes.BAD_REQUEST, message);
+    Object.setPrototypeOf(this, BadRequestException.prototype);
+  }
+}
+
+/**
  * Фильтр исключений для Express
  * Перехватывает все ошибки о тоношит их логирование
  */

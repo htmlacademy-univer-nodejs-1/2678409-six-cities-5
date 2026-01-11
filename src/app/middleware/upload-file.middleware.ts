@@ -1,6 +1,5 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import multer, { Multer, MulterError } from 'multer';
-import { extname } from 'path';
 import { nanoid } from 'nanoid';
 import { lookup } from 'mime-types';
 import { injectable, inject } from 'inversify';
@@ -13,7 +12,7 @@ import { existsSync } from 'fs';
 
 /**
  * Миддлвер для загрузки файлов
- * Обрабатывает загруженные файлы, составляет ним странс в req.file
+ * Обрабатывает загруженные файлы, сохраняет их в req.file
  */
 @injectable()
 export class UploadFileMiddleware {
@@ -32,24 +31,24 @@ export class UploadFileMiddleware {
   }
 
   /**
-   * Инициализировать директорию для отгружок
+   * Инициализировать директорию для загрузок
    */
   private async initializeUploadDirectory(): Promise<void> {
     try {
       if (!existsSync(this.uploadDir)) {
         await mkdir(this.uploadDir, { recursive: true });
-        this.logger.info(`Директория для отгружок создана: ${this.uploadDir}`);
+        this.logger.info(`Директория для загрузок создана: ${this.uploadDir}`);
       }
     } catch (err) {
       this.logger.error(
         { error: err },
-        `Ошибка при нициализации директории отгружок`
+        `Ошибка при инициализации директории загрузок`
       );
     }
   }
 
   /**
-   * Составить поконигурированные параметры multer
+   * Создать сконфигурированный экземпляр multer
    */
   private createMulterInstance(): Multer {
     return multer({
@@ -58,7 +57,7 @@ export class UploadFileMiddleware {
           cb(null, this.uploadDir);
         },
         filename: (_req: Request, file, cb) => {
-          // Генерируем уникальное отчества явно файла
+          // Генерируем уникальное имя файла
           const uniqueId = nanoid();
           // Определяем расширение файла через mime-types
           const ext = this.getFileExtension(file.mimetype);
@@ -76,7 +75,7 @@ export class UploadFileMiddleware {
         } else {
           cb(
             new Error(
-              `Доволен только загружать JPEG и PNG`
+              `Разрешено загружать только JPEG и PNG`
             )
           );
         }
@@ -94,7 +93,7 @@ export class UploadFileMiddleware {
 
   /**
    * Основной обработчик миддлвера
-   * Обрабатывает один файл ис поля 'avatar'
+   * Обрабатывает один файл из поля 'avatar'
    */
   public execute = (): ((req: Request, res: Response, next: NextFunction) => void) => {
     return (req: Request, res: Response, next: NextFunction) => {
@@ -105,27 +104,27 @@ export class UploadFileMiddleware {
           // Обрабатываем ошибки multer
           this.logger.error(
             { error: err.message, code: err.code },
-            'Ошибка при отгружке файла'
+            'Ошибка при загрузке файла'
           );
 
           if (err.code === 'LIMIT_FILE_SIZE') {
-            throw new BadRequestException(
-              `Размер файла превышает не больше 5МБ`
-            );
+            return next(new BadRequestException(
+              `Размер файла не должен превышать 5МБ`
+            ));
           }
 
-          throw new BadRequestException(err.message);
+          return next(new BadRequestException(err.message));
         }
 
         if (err) {
-          this.logger.error({ error: err }, 'Ошибка при отгружке файла');
-          throw new BadRequestException((err as Error).message);
+          this.logger.error({ error: err }, 'Ошибка при загрузке файла');
+          return next(new BadRequestException((err as Error).message));
         }
 
         if (req.file) {
           this.logger.debug(
             { filename: req.file.filename, fieldname: req.file.fieldname },
-            'Файл успешно отгружен'
+            'Файл успешно загружен'
           );
         }
 

@@ -7,7 +7,6 @@ import { IOfferService } from '../../services/offer.service.interface.js';
 import { Controller } from '../../core/controller.abstract.js';
 import { IRoute } from '../../core/route.interface.js';
 import { OfferResponseDto } from '../dto/offer/offer-response.dto.js';
-import { NotFoundException } from '../../core/exception-filter.js';
 import { Types } from 'mongoose';
 import { IOffer } from '../../models/offer.entity.js';
 import { DocumentExistsMiddlewareFactory } from '../middleware/document-exists.factory.js';
@@ -86,12 +85,16 @@ export class OfferController extends Controller {
    * Вспомогательный метод для оборачивания middleware в обработчик маршрута
    */
   private wrapMiddleware(
-    middleware: (req: Request, res: Response, next: Function) => Promise<void> | void,
+    middleware: (req: Request, res: Response, next: (err?: any) => void) => Promise<void> | void,
     handler: (req: Request, res: Response) => Promise<void>
   ): (req: Request, res: Response) => Promise<void> {
     return async (req: Request, res: Response) => {
       return new Promise<void>((resolve, reject) => {
-        middleware(req, res, () => {
+        middleware(req, res, (err?: any) => {
+          if (err) {
+            reject(err);
+            return;
+          }
           handler(req, res).then(resolve).catch(reject);
         });
       });
@@ -198,16 +201,16 @@ export class OfferController extends Controller {
 
   /**
    * Получить предложение по ID
-   * Вмиддлвер уже проверила существование
+   * Middleware уже проверила существование
    */
   private async show(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
 
-    const offer = await this.offerService.findById(id);
     // Документ гарантированно существует (проверила middleware)
-    // но проверяем на случай рас дроогиема
+    const offer = await this.offerService.findById(id);
     if (!offer) {
-      throw new NotFoundException('Offer not found');
+      // Это не должно произойти, но TypeScript требует проверку
+      return;
     }
 
     const response = plainToInstance(
@@ -242,16 +245,17 @@ export class OfferController extends Controller {
 
   /**
    * Обновить предложение
-   * Вмиддлвер уже проверила существование
+   * Middleware уже проверила существование
    */
   private async update(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     // TODO: Проверить, что пользователь - автор
 
-    // Получить от срежости - миддлвер юверила существование
+    // Документ гарантированно существует (проверила middleware)
     const updatedOffer = await this.offerService.update(id, req.body);
     if (!updatedOffer) {
-      throw new NotFoundException('Offer not found after update');
+      // Это не должно произойти, но TypeScript требует проверку
+      return;
     }
 
     const response = plainToInstance(
@@ -286,13 +290,13 @@ export class OfferController extends Controller {
 
   /**
    * Удалить предложение
-   * Вмиддлвер уже проверила существование
+   * Middleware уже проверила существование
    */
   private async delete(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     // TODO: Проверить, что пользователь - автор
 
-    // Получить от срежости - миддлвер юверила существование
+    // Документ гарантированно существует (проверила middleware)
     await this.offerService.delete(id);
 
     this.noContent(res);

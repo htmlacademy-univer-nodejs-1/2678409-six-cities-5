@@ -32,34 +32,39 @@ export class DocumentExistsMiddleware {
     _res: Response,
     next: NextFunction
   ): Promise<void> {
-    const documentId = req.params[this.paramName];
+    try {
+      const documentId = req.params[this.paramName];
 
-    // Проверяем наличие ID в параметрах
-    if (!documentId) {
-      this.logger.warn(
-        { paramName: this.paramName },
-        'Отсутствует бобываемый параметр'
-      );
-      throw new NotFoundException(`Параметр ${this.paramName} не найден`);
-    }
+      // Проверяем наличие ID в параметрах
+      if (!documentId) {
+        this.logger.warn(
+          { paramName: this.paramName },
+          'Отсутствует ожидаемый параметр'
+        );
+        return next(new NotFoundException(`Параметр ${this.paramName} не найден`));
+      }
 
-    // Проверяем существование документа
-    const documentExists = await this.service.exists(documentId);
+      // Проверяем существование документа
+      const documentExists = await this.service.exists(documentId);
 
-    if (!documentExists) {
+      if (!documentExists) {
+        this.logger.debug(
+          { documentId, paramName: this.paramName },
+          'Документ не найден'
+        );
+        return next(new NotFoundException(`Документ с ID ${documentId} не найден`));
+      }
+
       this.logger.debug(
         { documentId, paramName: this.paramName },
-        'Документ не найден'
+        'Документ существует'
       );
-      throw new NotFoundException(`Документ с ID ${documentId} не найден`);
+
+      // Передаем управление дальнейшему middleware
+      next();
+    } catch (error) {
+      // Передаем любую ошибку в обработчик ошибок Express
+      next(error);
     }
-
-    this.logger.debug(
-      { documentId, paramName: this.paramName },
-      'Документ существует'
-    );
-
-    // Попередаем токен дальнейшему миддлверу
-    next();
   }
 }

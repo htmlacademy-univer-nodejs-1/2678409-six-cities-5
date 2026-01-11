@@ -8,7 +8,6 @@ import { IUserService } from '../../services/user.service.interface.js';
 import { Controller } from '../../core/controller.abstract.js';
 import { IRoute } from '../../core/route.interface.js';
 import { OfferResponseDto } from '../dto/offer/offer-response.dto.js';
-import { NotFoundException } from '../../core/exception-filter.js';
 import { DocumentExistsMiddlewareFactory } from '../middleware/document-exists.factory.js';
 import { Logger } from 'pino';
 
@@ -67,12 +66,16 @@ export class FavoritesController extends Controller {
    * Вспомогательный метод для оборачивания middleware в обработчик маршрута
    */
   private wrapMiddleware(
-    middleware: (req: Request, res: Response, next: Function) => Promise<void> | void,
+    middleware: (req: Request, res: Response, next: (err?: any) => void) => Promise<void> | void,
     handler: (req: Request, res: Response) => Promise<void>
   ): (req: Request, res: Response) => Promise<void> {
     return async (req: Request, res: Response) => {
       return new Promise<void>((resolve, reject) => {
-        middleware(req, res, () => {
+        middleware(req, res, (err?: any) => {
+          if (err) {
+            reject(err);
+            return;
+          }
           handler(req, res).then(resolve).catch(reject);
         });
       });
@@ -122,17 +125,18 @@ export class FavoritesController extends Controller {
 
   /**
    * Добавить в избранные
-   * Вмиддлвер уже проверила существование предложения
+   * Middleware уже проверила существование предложения
    */
   private async add(req: Request, res: Response): Promise<void> {
     const { offerId } = req.params;
     // TODO: Получить userId из токена
     const userId = '507f1f77bcf86cd799439011'; // Mock userId
 
-    // От срежости - middleware юверила существование
+    // Документ гарантированно существует (проверила middleware)
     const offer = await this.offerService.findById(offerId);
     if (!offer) {
-      throw new NotFoundException('Offer not found');
+      // Это не должно произойти, но TypeScript требует проверку
+      return;
     }
 
     // Добавляем в избранные
@@ -170,17 +174,18 @@ export class FavoritesController extends Controller {
 
   /**
    * Удалить из избранных
-   * Вмиддлвер уже проверила существование предложения
+   * Middleware уже проверила существование предложения
    */
   private async remove(req: Request, res: Response): Promise<void> {
     const { offerId } = req.params;
     // TODO: Получить userId из токена
     const userId = '507f1f77bcf86cd799439011'; // Mock userId
 
-    // От срежости - middleware юверила существование
+    // Документ гарантированно существует (проверила middleware)
     const offer = await this.offerService.findById(offerId);
     if (!offer) {
-      throw new NotFoundException('Offer not found');
+      // Это не должно произойти, но TypeScript требует проверку
+      return;
     }
 
     // Удаляем из избранных

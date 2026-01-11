@@ -7,7 +7,7 @@ import { IUserService } from '../../services/user.service.interface.js';
 import { Controller } from '../../core/controller.abstract.js';
 import { IRoute } from '../../core/route.interface.js';
 import { UserResponseDto } from '../dto/user/user-response.dto.js';
-import { ConflictException, NotFoundException } from '../../core/exception-filter.js';
+import { ConflictException, BadRequestException } from '../../core/exception-filter.js';
 import { UploadFileMiddleware } from '../middleware/upload-file.middleware.js';
 import { DocumentExistsMiddlewareFactory } from '../middleware/document-exists.factory.js';
 import { Logger } from 'pino';
@@ -54,11 +54,12 @@ export class UserController extends Controller {
       {
         path: `${this.controllerRoute}/:id/avatar`,
         method: 'post',
-        // Добавляем middleware загрузки файла и проверки существования
+        // Добавляем middleware проверки существования и загрузки файла
+        // Порядок: сначала проверяем пользователя, потом загружаем файл
         handler: this.wrapMiddleware(
-          this.uploadFileMiddleware.execute(),
+          documentExistsMiddleware.execute.bind(documentExistsMiddleware),
           this.wrapMiddleware(
-            documentExistsMiddleware.execute.bind(documentExistsMiddleware),
+            this.uploadFileMiddleware.execute(),
             this.uploadAvatar.bind(this)
           )
         ),
@@ -75,12 +76,16 @@ export class UserController extends Controller {
    * Вспомогательный метод для оборачивания middleware в обработчик маршрута
    */
   private wrapMiddleware(
-    middleware: (req: Request, res: Response, next: Function) => Promise<void> | void,
+    middleware: (req: Request, res: Response, next: (err?: any) => void) => Promise<void> | void,
     handler: (req: Request, res: Response) => Promise<void>
   ): (req: Request, res: Response) => Promise<void> {
     return async (req: Request, res: Response) => {
       return new Promise<void>((resolve, reject) => {
-        middleware(req, res, () => {
+        middleware(req, res, (err?: any) => {
+          if (err) {
+            reject(err);
+            return;
+          }
           handler(req, res).then(resolve).catch(reject);
         });
       });
@@ -91,53 +96,90 @@ export class UserController extends Controller {
    * Регистрация нового пользователя
    */
   private async register(req: Request, res: Response): Promise<void> {
-    // Хешируем пароль (TODO: при доработке добавить bcrypt)
-    const passwordHash = req.body.password; // TODO: hash password
+    try {
+      // Валидация входных данных
+      if (!req.body.name || !req.body.email || !req.body.password || !req.body.type) {
+        throw new BadRequestException('Не все обязательные поля заполнены');
+      }
 
-    // Проверим, экзистирует ли пользователь с таким email
-    const existingUser = await this.userService.findByEmail(req.body.email);
-    if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+      // Преобразуем 'common' в 'normal' для совместимости
+      let userType: 'pro' | 'normal';
+      const requestedType = req.body.type;
+      if (requestedType === 'common') {
+        userType = 'normal';
+      } else if (requestedType === 'pro' || requestedType === 'normal') {
+        userType = requestedType;
+      } else {
+        throw new BadRequestException('Тип пользователя должен быть "pro" или "normal"');
+      }
+
+      // Хешируем пароль (TODO: при доработке добавить bcrypt)
+      const passwordHash = req.body.password; // TODO: hash password
+
+      // Проверим, существует ли пользователь с таким email
+      const existingUser = await this.userService.findByEmail(req.body.email);
+      if (existingUser) {
+        throw new ConflictException('User with this email already exists');
+      }
+
+      // Создаем нового пользователя
+      const userData = {
+        name: req.body.name,
+        email: req.body.email,
+        avatar: req.body.avatar,
+        passwordHash,
+        type: userType,
+      };
+
+      const user = await this.userService.create(userData);
+
+      // Конвертируем в DTO и отправляем
+      const response = plainToInstance(
+        UserResponseDto,
+        {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar || null,
+          type: user.type,
+          createdAt: user.createdAt.toISOString(),
+          updatedAt: user.updatedAt.toISOString(),
+        },
+        { excludeExtraneousValues: true }
+      );
+
+      this.created(res, response);
+    } catch (error: any) {
+      // Если это уже HttpException, пробрасываем дальше
+      if (error instanceof ConflictException || error instanceof BadRequestException) {
+        throw error;
+      }
+      // Обработка ошибок MongoDB (например, duplicate key)
+      if (error.code === 11000 || error.name === 'MongoServerError') {
+        throw new ConflictException('User with this email already exists');
+      }
+      // Обработка ошибок валидации MongoDB
+      if (error.name === 'ValidationError') {
+        const messages = Object.values(error.errors || {}).map((e: any) => e.message);
+        throw new BadRequestException(messages.join(', ') || 'Validation error');
+      }
+      // Для остальных ошибок пробрасываем как есть (они будут обработаны error handler)
+      throw error;
     }
-
-    // Создаем нового пользователя
-    const userData = {
-      name: req.body.name,
-      email: req.body.email,
-      avatar: req.body.avatar,
-      passwordHash,
-      type: req.body.type,
-    };
-
-    const user = await this.userService.create(userData);
-
-    // Конвертируем в DTO и отправляем
-    const response = plainToInstance(
-      UserResponseDto,
-      {
-        id: user._id.toString(),
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar || null,
-        type: user.type,
-        createdAt: user.createdAt.toISOString(),
-        updatedAt: user.updatedAt.toISOString(),
-      },
-      { excludeExtraneousValues: true }
-    );
-
-    this.created(res, response);
   }
 
   /**
    * Получить информацию о пользователе
+   * Middleware уже проверила существование
    */
   private async show(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
 
+    // Документ гарантированно существует (проверила middleware)
     const user = await this.userService.findById(id);
     if (!user) {
-      throw new NotFoundException('User not found');
+      // Это не должно произойти, но TypeScript требует проверку
+      return;
     }
 
     // Конвертируем в DTO и отправляем
@@ -159,12 +201,12 @@ export class UserController extends Controller {
   }
 
   /**
-   * Загружать аватар пользователя
+   * Загрузить аватар пользователя
    * POST /users/:id/avatar
    *
    * Middleware (вызываются в этом порядке):
-   * 1. UploadFileMiddleware - загружает файл
-   * 2. DocumentExistsMiddleware - проверяет существование пользователя
+   * 1. DocumentExistsMiddleware - проверяет существование пользователя
+   * 2. UploadFileMiddleware - загружает файл
    * 3. uploadAvatar - основной обработчик
    */
   private async uploadAvatar(req: Request, res: Response): Promise<void> {
@@ -172,20 +214,19 @@ export class UserController extends Controller {
 
     // Проверяем, что файл был загружен
     if (!req.file) {
-      this.badRequest(res, 'Файл не предан для отгрузки');
-      return;
+      throw new BadRequestException('Файл не передан для загрузки');
     }
 
-    // Обновляем аватар пользователя
-    const uploadDir = req.file.destination;
+    // Сохраняем путь к файлу для статики
+    // express.static раздает файлы по пути /uploads/filename
     const filename = req.file.filename;
-    const avatarPath = `${uploadDir}/${filename}`;
+    const avatarPath = `/uploads/${filename}`;
 
     // Пользователь существует - это проверила middleware
     const updatedUser = await this.userService.updateAvatar(id, avatarPath);
-
     if (!updatedUser) {
-      throw new NotFoundException('User not found');
+      // Это не должно произойти, но TypeScript требует проверку
+      return;
     }
 
     const response = plainToInstance(

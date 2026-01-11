@@ -1,7 +1,8 @@
 import { Types } from 'mongoose';
 import { IOffer, CreateOfferData, UpdateOfferData } from '../models/offer.entity.js';
+import { IDocumentService } from '../core/service.interface.js';
 
-export interface IOfferService {
+export interface IOfferService extends IDocumentService<IOffer> {
   findById(id: string | Types.ObjectId): Promise<IOffer | null>;
   findMany(limit?: number): Promise<IOffer[]>;
   create(offerData: CreateOfferData): Promise<IOffer>;
