@@ -12,7 +12,6 @@ import { LoginDto } from '../dto/auth/login.dto.js';
 import { UnauthorizedException, BadRequestException } from '../../core/exception-filter.js';
 import { AuthenticateMiddleware } from '../middleware/authenticate.middleware.js';
 import { validateDto } from '../middleware/validate-dto.middleware.js';
-import { Logger } from 'pino';
 
 /**
  * Контроллер для авторизации
@@ -23,7 +22,6 @@ export class AuthController extends Controller {
     @inject(TYPES.UserService) private readonly userService: IUserService,
     @inject(TYPES.AuthService) private readonly authService: IAuthService,
     @inject(TYPES.AuthenticateMiddleware) private readonly authenticateMiddleware: AuthenticateMiddleware,
-    @inject(TYPES.Logger) private readonly logger: Logger
   ) {
     super('/auth');
   }
@@ -66,7 +64,7 @@ export class AuthController extends Controller {
    */
   private async register(_req: Request, _res: Response): Promise<void> {
     // Регистрация обрабатывается в UserController через POST /users
-    // Этот маршрут оставлен для совместимости со спецификацией
+    
     throw new BadRequestException('Используйте POST /users для регистрации');
   }
 
@@ -83,7 +81,7 @@ export class AuthController extends Controller {
       throw new UnauthorizedException('Неверный email или пароль');
     }
 
-    // Проверяем пароль (пока простое сравнение, TODO: добавить bcrypt)
+    // Проверяем пароль 
     if (user.passwordHash !== password) {
       throw new UnauthorizedException('Неверный email или пароль');
     }

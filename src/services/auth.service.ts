@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import { injectable, inject } from 'inversify';
 import { SignJWT, jwtVerify } from 'jose';
-import { Types } from 'mongoose';
 import { IUser } from '../models/user.entity.js';
 import { TYPES } from '../core/types.js';
 import { Config } from '../config/config.js';

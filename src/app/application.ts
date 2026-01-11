@@ -12,6 +12,7 @@ import { UserController } from './controllers/user.controller.js';
 import { OfferController } from './controllers/offer.controller.js';
 import { FavoritesController } from './controllers/favorites.controller.js';
 import { AuthController } from './controllers/auth.controller.js';
+import { CommentController } from './controllers/comment.controller.js';
 
 /**
  * Основное приложение
@@ -29,6 +30,7 @@ export class Application {
     @inject(TYPES.OfferController) private readonly offerController: OfferController,
     @inject(TYPES.FavoritesController) private readonly favoritesController: FavoritesController,
     @inject(TYPES.AuthController) private readonly authController: AuthController,
+    @inject(TYPES.CommentController) private readonly commentController: CommentController,
     @inject(TYPES.ExceptionFilter) private readonly exceptionFilter: ExceptionFilter,
   ) {
     // Инициализируем Express приложение
@@ -59,13 +61,10 @@ export class Application {
 
   /**
    * Регистрация миддлвер
-   * ВАЖНО: Все миддлвер, обращающиеся к БД, должны вызываться ПОСЛЕ регистрации маршрутов
    */
   private registerMiddlewares(): void {
-    // Парсируем JSON тело запроса
     this.expressApp.use(express.json());
 
-    // Парсируем URL-энкодированные данные
     this.expressApp.use(express.urlencoded({ extended: true }));
 
     // Подключаем раздачу статических файлов (аватары, изображения и т.д.)
@@ -86,6 +85,7 @@ export class Application {
       this.userController,
       this.offerController,
       this.favoritesController,
+      this.commentController,
     ];
 
     // Регистрируем каждый контроллер

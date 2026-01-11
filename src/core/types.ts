@@ -13,7 +13,9 @@ export const TYPES = {
   OfferController: Symbol.for('OfferController'),
   FavoritesController: Symbol.for('FavoritesController'),
   AuthController: Symbol.for('AuthController'),
+  CommentController: Symbol.for('CommentController'),
   ExceptionFilter: Symbol.for('ExceptionFilter'),
   UploadFileMiddleware: Symbol.for('UploadFileMiddleware'),
   AuthenticateMiddleware: Symbol.for('AuthenticateMiddleware'),
+  OptionalAuthenticateMiddleware: Symbol.for('OptionalAuthenticateMiddleware'),
 };

@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { IMiddleware } from './middleware.interface.js';
 
 /**
  * Тип для обработчика маршрута
@@ -16,6 +17,7 @@ export interface IRoute {
   path: string;
   method: 'get' | 'post' | 'put' | 'delete' | 'patch';
   handler: RouteHandler;
+  middleware?: IMiddleware[];
 }
 
 /**

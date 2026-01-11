@@ -15,6 +15,7 @@ import { UserController } from '../app/controllers/user.controller.js';
 import { OfferController } from '../app/controllers/offer.controller.js';
 import { FavoritesController } from '../app/controllers/favorites.controller.js';
 import { AuthController } from '../app/controllers/auth.controller.js';
+import { CommentController } from '../app/controllers/comment.controller.js';
 import { ExceptionFilter } from './exception-filter.js';
 import { IUserService } from '../services/user.service.interface.js';
 import { IOfferService } from '../services/offer.service.interface.js';
@@ -23,6 +24,7 @@ import { ICommentService } from '../services/comment.service.interface.js';
 import { IAuthService } from '../services/auth.service.interface.js';
 import { UploadFileMiddleware } from '../app/middleware/upload-file.middleware.js';
 import { AuthenticateMiddleware } from '../app/middleware/authenticate.middleware.js';
+import { OptionalAuthenticateMiddleware } from '../app/middleware/optional-authenticate.middleware.js';
 import { TYPES } from './types.js';
 
 const container = new Container();
@@ -87,6 +89,12 @@ container
   .to(AuthenticateMiddleware)
   .inSingletonScope();
 
+// Регистрация OptionalAuthenticateMiddleware
+container
+  .bind<OptionalAuthenticateMiddleware>(TYPES.OptionalAuthenticateMiddleware)
+  .to(OptionalAuthenticateMiddleware)
+  .inSingletonScope();
+
 // Регистрация контроллеров
 container
   .bind<UserController>(TYPES.UserController)
@@ -108,16 +116,9 @@ container
   .to(AuthController)
   .inSingletonScope();
 
-// Регистрация UploadFileMiddleware
 container
-  .bind<UploadFileMiddleware>(TYPES.UploadFileMiddleware)
-  .to(UploadFileMiddleware)
-  .inSingletonScope();
-
-// Регистрация AuthenticateMiddleware
-container
-  .bind<AuthenticateMiddleware>(TYPES.AuthenticateMiddleware)
-  .to(AuthenticateMiddleware)
+  .bind<CommentController>(TYPES.CommentController)
+  .to(CommentController)
   .inSingletonScope();
 
 // Регистрация ExceptionFilter

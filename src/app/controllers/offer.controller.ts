@@ -11,7 +11,9 @@ import { Types } from 'mongoose';
 import { IOffer } from '../../models/offer.entity.js';
 import { DocumentExistsMiddlewareFactory } from '../middleware/document-exists.factory.js';
 import { AuthenticateMiddleware } from '../middleware/authenticate.middleware.js';
+import { OptionalAuthenticateMiddleware } from '../middleware/optional-authenticate.middleware.js';
 import { IUserService } from '../../services/user.service.interface.js';
+import { UnauthorizedException, ForbiddenException } from '../../core/exception-filter.js';
 import { Logger } from 'pino';
 
 /**
@@ -23,6 +25,7 @@ export class OfferController extends Controller {
     @inject(TYPES.OfferService) private readonly offerService: IOfferService,
     @inject(TYPES.UserService) private readonly userService: IUserService,
     @inject(TYPES.AuthenticateMiddleware) private readonly authenticateMiddleware: AuthenticateMiddleware,
+    @inject(TYPES.OptionalAuthenticateMiddleware) private readonly optionalAuthenticateMiddleware: OptionalAuthenticateMiddleware,
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {
     super('/offers');
@@ -44,6 +47,7 @@ export class OfferController extends Controller {
         path: `${this.controllerRoute}`,
         method: 'get',
         handler: this.index.bind(this),
+        middleware: [this.optionalAuthenticateMiddleware],
       },
       {
         path: `${this.controllerRoute}`,
@@ -284,7 +288,21 @@ export class OfferController extends Controller {
    */
   private async update(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    // TODO: Проверить, что пользователь - автор
+
+    // Проверяем авторизацию
+    if (!req.user) {
+      throw new UnauthorizedException('Пользователь не авторизован');
+    }
+
+    // Проверяем, что пользователь - автор предложения
+    const offer = await this.offerService.findById(id);
+    if (!offer) {
+      return;
+    }
+
+    if (offer.authorId.toString() !== req.user._id.toString()) {
+      throw new ForbiddenException('Вы не можете редактировать чужое предложение');
+    }
 
     // Документ гарантированно существует (проверила middleware)
     const updatedOffer = await this.offerService.update(id, req.body);
@@ -329,7 +347,21 @@ export class OfferController extends Controller {
    */
   private async delete(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
-    // TODO: Проверить, что пользователь - автор
+
+    // Проверяем авторизацию
+    if (!req.user) {
+      throw new UnauthorizedException('Пользователь не авторизован');
+    }
+
+    // Проверяем, что пользователь - автор предложения
+    const offer = await this.offerService.findById(id);
+    if (!offer) {
+      return;
+    }
+
+    if (offer.authorId.toString() !== req.user._id.toString()) {
+      throw new ForbiddenException('Вы не можете удалить чужое предложение');
+    }
 
     // Документ гарантированно существует (проверила middleware)
     await this.offerService.delete(id);
