@@ -17,7 +17,7 @@ export class DocumentExistsMiddlewareFactory {
    */
   public static create(
     service: IDocumentService<unknown>,
-    paramName: string = 'id',
+    paramName = 'id',
     logger: Logger
   ): DocumentExistsMiddleware {
     return new DocumentExistsMiddleware(service, paramName, logger);

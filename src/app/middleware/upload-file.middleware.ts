@@ -7,8 +7,8 @@ import { Logger } from 'pino';
 import { TYPES } from '../../core/types.js';
 import { Config } from '../../config/config.js';
 import { BadRequestException } from '../../core/exception-filter.js';
-import { mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
+import { mkdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 
 /**
  * Миддлвер для загрузки файлов
@@ -42,7 +42,7 @@ export class UploadFileMiddleware {
     } catch (err) {
       this.logger.error(
         { error: err },
-        `Ошибка при инициализации директории загрузок`
+        'Ошибка при инициализации директории загрузок'
       );
     }
   }
@@ -71,11 +71,11 @@ export class UploadFileMiddleware {
       fileFilter: (_req: Request, file, cb) => {
         // Проверяем MIME тип файла
         if (this.allowedMimes.includes(file.mimetype)) {
-          cb(null, true);
+          return cb(null, true);
         } else {
-          cb(
+          return cb(
             new Error(
-              `Разрешено загружать только JPEG и PNG`
+              'Разрешено загружать только JPEG и PNG'
             )
           );
         }
@@ -95,41 +95,39 @@ export class UploadFileMiddleware {
    * Основной обработчик миддлвера
    * Обрабатывает один файл из поля 'avatar'
    */
-  public execute = (): ((req: Request, res: Response, next: NextFunction) => void) => {
-    return (req: Request, res: Response, next: NextFunction) => {
-      const uploadHandler = this.multerInstance.single('avatar');
+  public execute = (): ((req: Request, res: Response, next: NextFunction) => void) => (req: Request, res: Response, next: NextFunction) => {
+    const uploadHandler = this.multerInstance.single('avatar');
 
-      uploadHandler(req, res, (err: unknown) => {
-        if (err instanceof MulterError) {
-          // Обрабатываем ошибки multer
-          this.logger.error(
-            { error: err.message, code: err.code },
-            'Ошибка при загрузке файла'
-          );
+    uploadHandler(req, res, (err: unknown) => {
+      if (err instanceof MulterError) {
+        // Обрабатываем ошибки multer
+        this.logger.error(
+          { error: err.message, code: err.code },
+          'Ошибка при загрузке файла'
+        );
 
-          if (err.code === 'LIMIT_FILE_SIZE') {
-            return next(new BadRequestException(
-              `Размер файла не должен превышать 5МБ`
-            ));
-          }
-
-          return next(new BadRequestException(err.message));
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return next(new BadRequestException(
+            'Размер файла не должен превышать 5МБ'
+          ));
         }
 
-        if (err) {
-          this.logger.error({ error: err }, 'Ошибка при загрузке файла');
-          return next(new BadRequestException((err as Error).message));
-        }
+        return next(new BadRequestException(err.message));
+      }
 
-        if (req.file) {
-          this.logger.debug(
-            { filename: req.file.filename, fieldname: req.file.fieldname },
-            'Файл успешно загружен'
-          );
-        }
+      if (err) {
+        this.logger.error({ error: err }, 'Ошибка при загрузке файла');
+        return next(new BadRequestException((err as Error).message));
+      }
 
-        next();
-      });
-    };
+      if (req.file) {
+        this.logger.debug(
+          { filename: req.file.filename, fieldname: req.file.fieldname },
+          'Файл успешно загружен'
+        );
+      }
+
+      next();
+    });
   };
 }

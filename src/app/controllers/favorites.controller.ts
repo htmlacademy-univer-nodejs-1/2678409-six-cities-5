@@ -69,8 +69,8 @@ export class FavoritesController extends Controller {
     middleware: (req: Request, res: Response, next: (err?: any) => void) => Promise<void> | void,
     handler: (req: Request, res: Response) => Promise<void>
   ): (req: Request, res: Response) => Promise<void> {
-    return async (req: Request, res: Response) => {
-      return new Promise<void>((resolve, reject) => {
+    return async (req: Request, res: Response) =>
+      new Promise<void>((resolve, reject) => {
         middleware(req, res, (err?: any) => {
           if (err) {
             reject(err);
@@ -79,7 +79,6 @@ export class FavoritesController extends Controller {
           handler(req, res).then(resolve).catch(reject);
         });
       });
-    };
   }
 
   /**

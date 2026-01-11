@@ -61,10 +61,10 @@ export class DocumentExistsMiddleware {
       );
 
       // Передаем управление дальнейшему middleware
-      next();
+      return next();
     } catch (error) {
       // Передаем любую ошибку в обработчик ошибок Express
-      next(error);
+      return next(error);
     }
   }
 }
