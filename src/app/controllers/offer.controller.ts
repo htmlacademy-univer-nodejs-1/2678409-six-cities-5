@@ -10,6 +10,8 @@ import { OfferResponseDto } from '../dto/offer/offer-response.dto.js';
 import { Types } from 'mongoose';
 import { IOffer } from '../../models/offer.entity.js';
 import { DocumentExistsMiddlewareFactory } from '../middleware/document-exists.factory.js';
+import { AuthenticateMiddleware } from '../middleware/authenticate.middleware.js';
+import { IUserService } from '../../services/user.service.interface.js';
 import { Logger } from 'pino';
 
 /**
@@ -19,6 +21,8 @@ import { Logger } from 'pino';
 export class OfferController extends Controller {
   constructor(
     @inject(TYPES.OfferService) private readonly offerService: IOfferService,
+    @inject(TYPES.UserService) private readonly userService: IUserService,
+    @inject(TYPES.AuthenticateMiddleware) private readonly authenticateMiddleware: AuthenticateMiddleware,
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {
     super('/offers');
@@ -45,6 +49,7 @@ export class OfferController extends Controller {
         path: `${this.controllerRoute}`,
         method: 'post',
         handler: this.create.bind(this),
+        middleware: [this.authenticateMiddleware],
       },
       {
         path: `${this.controllerRoute}/:id`,
@@ -58,19 +63,25 @@ export class OfferController extends Controller {
       {
         path: `${this.controllerRoute}/:id`,
         method: 'put',
-        // Добавляем middleware проверки существования
+        // Добавляем middleware проверки существования и авторизации
         handler: this.wrapMiddleware(
           documentExistsMiddleware.execute.bind(documentExistsMiddleware),
-          this.update.bind(this)
+          this.wrapMiddleware(
+            this.authenticateMiddleware.execute.bind(this.authenticateMiddleware),
+            this.update.bind(this)
+          )
         ),
       },
       {
         path: `${this.controllerRoute}/:id`,
         method: 'delete',
-        // Добавляем middleware проверки существования
+        // Добавляем middleware проверки существования и авторизации
         handler: this.wrapMiddleware(
           documentExistsMiddleware.execute.bind(documentExistsMiddleware),
-          this.delete.bind(this)
+          this.wrapMiddleware(
+            this.authenticateMiddleware.execute.bind(this.authenticateMiddleware),
+            this.delete.bind(this)
+          )
         ),
       },
       {
@@ -102,13 +113,25 @@ export class OfferController extends Controller {
 
   /**
    * Получить все предложения
+   * Флаг isFavorite формируется на основе избранного текущего пользователя
    */
   private async index(req: Request, res: Response): Promise<void> {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 60;
     const offers = await this.offerService.findMany(limit);
 
-    const responses = offers.map((offer: IOffer) =>
-      plainToInstance(
+    // Получаем список избранных предложений, если пользователь авторизован
+    let favoriteOfferIds: Types.ObjectId[] = [];
+    if (req.user) {
+      favoriteOfferIds = await this.userService.getFavoriteOffers(req.user._id);
+    }
+
+    const responses = offers.map((offer: IOffer) => {
+      const offerId = new Types.ObjectId(offer._id);
+      const isFavorite = favoriteOfferIds.some(
+        (favId) => favId.toString() === offerId.toString()
+      );
+
+      return plainToInstance(
         OfferResponseDto,
         {
           id: offer._id.toString(),
@@ -119,7 +142,7 @@ export class OfferController extends Controller {
           preview: offer.preview,
           images: offer.images,
           isPremium: offer.isPremium,
-          isFavorite: false, // TODO: проверить наличие в исбраным
+          isFavorite,
           rating: offer.rating,
           type: offer.type,
           bedrooms: offer.bedrooms,
@@ -133,8 +156,8 @@ export class OfferController extends Controller {
           updatedAt: offer.updatedAt.toISOString(),
         },
         { excludeExtraneousValues: true }
-      )
-    );
+      );
+    });
 
     this.ok(res, responses);
   }
@@ -143,9 +166,11 @@ export class OfferController extends Controller {
    * Создать новое предложение
    */
   private async create(req: Request, res: Response): Promise<void> {
-    // TODO: Получить authorId из токена
-    const authorIdString = '507f1f77bcf86cd799439011'; // Mock userId
-    const authorId = new Types.ObjectId(authorIdString);
+    // Получаем authorId из токена (добавлен middleware)
+    if (!req.user) {
+      throw new Error('Пользователь не авторизован');
+    }
+    const authorId = req.user._id;
 
     const offerData = {
       title: req.body.title,
@@ -201,6 +226,7 @@ export class OfferController extends Controller {
   /**
    * Получить предложение по ID
    * Middleware уже проверила существование
+   * Флаг isFavorite формируется на основе избранного текущего пользователя
    */
   private async show(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
@@ -210,6 +236,16 @@ export class OfferController extends Controller {
     if (!offer) {
       // Это не должно произойти, но TypeScript требует проверку
       return;
+    }
+
+    // Проверяем, находится ли предложение в избранном
+    let isFavorite = false;
+    if (req.user) {
+      const favoriteOfferIds = await this.userService.getFavoriteOffers(req.user._id);
+      const offerId = new Types.ObjectId(offer._id);
+      isFavorite = favoriteOfferIds.some(
+        (favId) => favId.toString() === offerId.toString()
+      );
     }
 
     const response = plainToInstance(
@@ -223,7 +259,7 @@ export class OfferController extends Controller {
         preview: offer.preview,
         images: offer.images,
         isPremium: offer.isPremium,
-        isFavorite: false,
+        isFavorite,
         rating: offer.rating,
         type: offer.type,
         bedrooms: offer.bedrooms,

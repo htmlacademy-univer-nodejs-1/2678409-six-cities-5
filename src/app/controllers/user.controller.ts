@@ -10,6 +10,7 @@ import { UserResponseDto } from '../dto/user/user-response.dto.js';
 import { ConflictException, BadRequestException } from '../../core/exception-filter.js';
 import { UploadFileMiddleware } from '../middleware/upload-file.middleware.js';
 import { DocumentExistsMiddlewareFactory } from '../middleware/document-exists.factory.js';
+import { AuthenticateMiddleware } from '../middleware/authenticate.middleware.js';
 import { Logger } from 'pino';
 
 /**
@@ -21,6 +22,7 @@ export class UserController extends Controller {
     @inject(TYPES.UserService) private readonly userService: IUserService,
     @inject(TYPES.Logger) private readonly logger: Logger,
     @inject(TYPES.UploadFileMiddleware) private readonly uploadFileMiddleware: UploadFileMiddleware,
+    @inject(TYPES.AuthenticateMiddleware) private readonly authenticateMiddleware: AuthenticateMiddleware,
   ) {
     super('/users');
   }
@@ -54,13 +56,16 @@ export class UserController extends Controller {
       {
         path: `${this.controllerRoute}/:id/avatar`,
         method: 'post',
-        // Добавляем middleware проверки существования и загрузки файла
-        // Порядок: сначала проверяем пользователя, потом загружаем файл
+        // Добавляем middleware проверки существования, авторизации и загрузки файла
+        // Порядок: сначала проверяем пользователя, потом авторизацию, потом загружаем файл
         handler: this.wrapMiddleware(
           documentExistsMiddleware.execute.bind(documentExistsMiddleware),
           this.wrapMiddleware(
-            this.uploadFileMiddleware.execute(),
-            this.uploadAvatar.bind(this)
+            this.authenticateMiddleware.execute.bind(this.authenticateMiddleware),
+            this.wrapMiddleware(
+              this.uploadFileMiddleware.execute(),
+              this.uploadAvatar.bind(this)
+            )
           )
         ),
       },

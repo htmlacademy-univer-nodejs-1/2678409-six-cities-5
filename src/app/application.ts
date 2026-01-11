@@ -11,6 +11,7 @@ import { ExceptionFilter, HttpException, ConflictException, BadRequestException 
 import { UserController } from './controllers/user.controller.js';
 import { OfferController } from './controllers/offer.controller.js';
 import { FavoritesController } from './controllers/favorites.controller.js';
+import { AuthController } from './controllers/auth.controller.js';
 
 /**
  * Основное приложение
@@ -27,6 +28,7 @@ export class Application {
     @inject(TYPES.UserController) private readonly userController: UserController,
     @inject(TYPES.OfferController) private readonly offerController: OfferController,
     @inject(TYPES.FavoritesController) private readonly favoritesController: FavoritesController,
+    @inject(TYPES.AuthController) private readonly authController: AuthController,
     @inject(TYPES.ExceptionFilter) private readonly exceptionFilter: ExceptionFilter,
   ) {
     // Инициализируем Express приложение
@@ -80,6 +82,7 @@ export class Application {
   private registerRoutes(): void {
     // Получаем контроллеры
     const controllers: IController[] = [
+      this.authController,
       this.userController,
       this.offerController,
       this.favoritesController,
@@ -94,21 +97,29 @@ export class Application {
         const handler = asyncHandler(route.handler);
         const fullPath = `/api${route.path}`;
 
+        // Применяем middleware, если они есть
+        const middlewareHandlers = route.middleware
+          ? route.middleware.map((mw) => asyncHandler(mw.execute.bind(mw)))
+          : [];
+
+        // Объединяем middleware и обработчик
+        const allHandlers = [...middlewareHandlers, handler];
+
         switch (route.method) {
           case 'get':
-            this.expressApp.get(fullPath, handler);
+            this.expressApp.get(fullPath, ...allHandlers);
             break;
           case 'post':
-            this.expressApp.post(fullPath, handler);
+            this.expressApp.post(fullPath, ...allHandlers);
             break;
           case 'put':
-            this.expressApp.put(fullPath, handler);
+            this.expressApp.put(fullPath, ...allHandlers);
             break;
           case 'delete':
-            this.expressApp.delete(fullPath, handler);
+            this.expressApp.delete(fullPath, ...allHandlers);
             break;
           case 'patch':
-            this.expressApp.patch(fullPath, handler);
+            this.expressApp.patch(fullPath, ...allHandlers);
             break;
           default:
             break;
