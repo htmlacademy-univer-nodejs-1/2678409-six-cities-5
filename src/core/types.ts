@@ -10,7 +10,9 @@ export const TYPES = {
   ImportService: Symbol.for('ImportService'),
   UserController: Symbol.for('UserController'),
   OfferController: Symbol.for('OfferController'),
+  CommentController: Symbol.for('CommentController'),
   FavoritesController: Symbol.for('FavoritesController'),
   ExceptionFilter: Symbol.for('ExceptionFilter'),
   UploadFileMiddleware: Symbol.for('UploadFileMiddleware'),
+  ValidateObjectIdMiddleware: Symbol.for('ValidateObjectIdMiddleware'),
 };
