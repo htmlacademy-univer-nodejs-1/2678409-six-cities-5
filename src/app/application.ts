@@ -144,7 +144,7 @@ export class Application {
         }
 
         // Обработка ошибок MongoDB
-        const mongoError = err as any;
+        const mongoError = err as unknown as { name?: string; code?: number; keyPattern?: Record<string, unknown>; errors?: Record<string, { message?: string }> };
         if (mongoError.name === 'ValidationError' || mongoError.name === 'MongoServerError') {
           if (mongoError.code === 11000) {
             // Duplicate key error
@@ -158,7 +158,7 @@ export class Application {
             return;
           }
           if (mongoError.name === 'ValidationError') {
-            const messages = Object.values(mongoError.errors || {}).map((e: any) => e.message);
+            const messages = Object.values(mongoError.errors || {}).map((e: { message?: string }) => e.message);
             this.exceptionFilter.catch(
               new BadRequestException(messages.join(', ') || 'Validation error'),
               _req,

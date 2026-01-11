@@ -10,7 +10,7 @@ import { IMiddleware } from '../../core/middleware.interface.js';
  * Проверяет данные запроса при помощи class-validator
  */
 export class ValidateDtoMiddleware implements IMiddleware {
-  constructor(private readonly dtoClass: any) {}
+  constructor(private readonly dtoClass: new () => object) {}
 
   /**
    * Проверить данные тела запроса в соответствии с DTO
@@ -52,4 +52,4 @@ export class ValidateDtoMiddleware implements IMiddleware {
  * Фактория для создания миддлвера валидации
  * Метод, который обычно используется для создания миддлвера
  */
-export const validateDto = (dtoClass: any): ValidateDtoMiddleware => new ValidateDtoMiddleware(dtoClass);
+export const validateDto = (dtoClass: new () => object): ValidateDtoMiddleware => new ValidateDtoMiddleware(dtoClass);

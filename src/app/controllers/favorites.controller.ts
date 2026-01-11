@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'inversify';
 import { plainToInstance } from 'class-transformer';
 import { TYPES } from '../../core/types.js';
@@ -75,14 +75,14 @@ export class FavoritesController extends Controller {
    * Вспомогательный метод для оборачивания middleware в обработчик маршрута
    */
   private wrapMiddleware(
-    middleware: (req: Request, res: Response, next: (err?: any) => void) => Promise<void> | void,
+    middleware: (req: Request, res: Response, next: NextFunction) => Promise<void> | void,
     handler: (req: Request, res: Response) => Promise<void>
   ): (req: Request, res: Response) => Promise<void> {
     return async (req: Request, res: Response) =>
       new Promise<void>((resolve, reject) => {
-        middleware(req, res, (err?: any) => {
+        middleware(req, res, (err?: Error | string) => {
           if (err) {
-            reject(err);
+            reject(err instanceof Error ? err : new Error(err));
             return;
           }
           handler(req, res).then(resolve).catch(reject);

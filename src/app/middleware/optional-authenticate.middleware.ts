@@ -61,11 +61,11 @@ export class OptionalAuthenticateMiddleware implements IMiddleware {
       // Добавляем пользователя в запрос
       req.user = user;
       this.logger.debug({ userId: user._id.toString() }, 'Пользователь опционально авторизован');
-      next();
+      return next();
     } catch (error) {
       // Любая ошибка - просто продолжаем без авторизации
       this.logger.debug({ error }, 'Ошибка при опциональной аутентификации');
-      next();
+      return next();
     }
   }
 }

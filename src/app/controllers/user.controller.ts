@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'inversify';
 import { plainToInstance } from 'class-transformer';
 import { TYPES } from '../../core/types.js';
@@ -81,14 +81,14 @@ export class UserController extends Controller {
    * Вспомогательный метод для оборачивания middleware в обработчик маршрута
    */
   private wrapMiddleware(
-    middleware: (req: Request, res: Response, next: (err?: any) => void) => Promise<void> | void,
+    middleware: (req: Request, res: Response, next: NextFunction) => Promise<void> | void,
     handler: (req: Request, res: Response) => Promise<void>
   ): (req: Request, res: Response) => Promise<void> {
     return async (req: Request, res: Response) =>
       new Promise<void>((resolve, reject) => {
-        middleware(req, res, (err?: any) => {
+        middleware(req, res, (err?: Error | string) => {
           if (err) {
-            reject(err);
+            reject(err instanceof Error ? err : new Error(err));
             return;
           }
           handler(req, res).then(resolve).catch(reject);
@@ -153,18 +153,19 @@ export class UserController extends Controller {
       );
 
       this.created(res, response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Если это уже HttpException, пробрасываем дальше
       if (error instanceof ConflictException || error instanceof BadRequestException) {
         throw error;
       }
       // Обработка ошибок MongoDB (например, duplicate key)
-      if (error.code === 11000 || error.name === 'MongoServerError') {
+      const mongoError = error as { code?: number; name?: string; errors?: Record<string, { message?: string }> };
+      if (mongoError.code === 11000 || mongoError.name === 'MongoServerError') {
         throw new ConflictException('User with this email already exists');
       }
       // Обработка ошибок валидации MongoDB
-      if (error.name === 'ValidationError') {
-        const messages = Object.values(error.errors || {}).map((e: any) => e.message);
+      if (mongoError.name === 'ValidationError') {
+        const messages = Object.values(mongoError.errors || {}).map((e: { message?: string }) => e.message);
         throw new BadRequestException(messages.join(', ') || 'Validation error');
       }
       // Для остальных ошибок пробрасываем как есть (они будут обработаны error handler)
@@ -226,7 +227,6 @@ export class UserController extends Controller {
     const filename = req.file.filename;
     const avatarPath = `/uploads/${filename}`;
 
-    // Пользователь существует - это проверила middleware
     const updatedUser = await this.userService.updateAvatar(id, avatarPath);
     if (!updatedUser) {
       // Это не должно произойти, но TypeScript требует проверку

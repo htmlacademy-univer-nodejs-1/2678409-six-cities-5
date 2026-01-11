@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'inversify';
 import { plainToInstance } from 'class-transformer';
 import { TYPES } from '../../core/types.js';
@@ -16,6 +16,7 @@ import { validateDto } from '../middleware/validate-dto.middleware.js';
 import { DocumentExistsMiddlewareFactory } from '../middleware/document-exists.factory.js';
 import { NotFoundException } from '../../core/exception-filter.js';
 import { Logger } from 'pino';
+import { Types } from 'mongoose';
 
 /**
  * Контроллер для работы с комментариями
@@ -71,14 +72,14 @@ export class CommentController extends Controller {
    * Вспомогательный метод для оборачивания middleware в обработчик маршрута
    */
   private wrapMiddleware(
-    middleware: (req: Request, res: Response, next: (err?: any) => void) => Promise<void> | void,
+    middleware: (req: Request, res: Response, next: NextFunction) => Promise<void> | void,
     handler: (req: Request, res: Response) => Promise<void>
   ): (req: Request, res: Response) => Promise<void> {
     return async (req: Request, res: Response) =>
       new Promise<void>((resolve, reject) => {
-        middleware(req, res, (err?: any) => {
+        middleware(req, res, (err?: Error | string) => {
           if (err) {
-            reject(err);
+            reject(err instanceof Error ? err : new Error(err));
             return;
           }
           handler(req, res).then(resolve).catch(reject);
@@ -136,7 +137,9 @@ export class CommentController extends Controller {
     this.ok(res, responses);
   }
 
-  
+  /**
+   * Создать комментарий для предложения
+   */
   private async create(req: Request, res: Response): Promise<void> {
     const { offerId } = req.params;
     const { text, rating } = req.body;
@@ -151,7 +154,7 @@ export class CommentController extends Controller {
       text,
       rating,
       authorId: req.user._id,
-      offerId: offerId as any, 
+      offerId: new Types.ObjectId(offerId),
     });
 
     // Получаем информацию об авторе

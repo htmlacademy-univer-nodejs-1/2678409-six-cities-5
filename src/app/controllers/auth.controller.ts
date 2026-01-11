@@ -64,7 +64,6 @@ export class AuthController extends Controller {
    */
   private async register(_req: Request, _res: Response): Promise<void> {
     // Регистрация обрабатывается в UserController через POST /users
-    
     throw new BadRequestException('Используйте POST /users для регистрации');
   }
 
@@ -81,7 +80,7 @@ export class AuthController extends Controller {
       throw new UnauthorizedException('Неверный email или пароль');
     }
 
-    // Проверяем пароль 
+    // Проверяем пароль
     if (user.passwordHash !== password) {
       throw new UnauthorizedException('Неверный email или пароль');
     }
