@@ -29,6 +29,7 @@ export class UserController extends Controller {
    * Получить все маршруты контроллера
    */
   public getRoutes(): IRoute[] {
+    // Создаем middleware для проверки существования пользователя
     const documentExistsMiddleware = DocumentExistsMiddlewareFactory.create(
       this.userService,
       'id',
@@ -44,12 +45,23 @@ export class UserController extends Controller {
       {
         path: `${this.controllerRoute}/:id`,
         method: 'get',
-        handler: this.show.bind(this),
+        // Добавляем middleware проверки существования
+        handler: this.wrapMiddleware(
+          documentExistsMiddleware.execute.bind(documentExistsMiddleware),
+          this.show.bind(this)
+        ),
       },
       {
         path: `${this.controllerRoute}/:id/avatar`,
         method: 'post',
-        handler: this.uploadAvatar.bind(this),
+        // Добавляем middleware загрузки файла и проверки существования
+        handler: this.wrapMiddleware(
+          this.uploadFileMiddleware.execute(),
+          this.wrapMiddleware(
+            documentExistsMiddleware.execute.bind(documentExistsMiddleware),
+            this.uploadAvatar.bind(this)
+          )
+        ),
       },
       {
         path: `${this.controllerRoute}/check-auth`,
@@ -57,6 +69,22 @@ export class UserController extends Controller {
         handler: this.checkAuth.bind(this),
       },
     ];
+  }
+
+  /**
+   * Вспомогательный метод для оборачивания middleware в обработчик маршрута
+   */
+  private wrapMiddleware(
+    middleware: (req: Request, res: Response, next: Function) => Promise<void> | void,
+    handler: (req: Request, res: Response) => Promise<void>
+  ): (req: Request, res: Response) => Promise<void> {
+    return async (req: Request, res: Response) => {
+      return new Promise<void>((resolve, reject) => {
+        middleware(req, res, () => {
+          handler(req, res).then(resolve).catch(reject);
+        });
+      });
+    };
   }
 
   /**
@@ -133,13 +161,18 @@ export class UserController extends Controller {
   /**
    * Загружать аватар пользователя
    * POST /users/:id/avatar
+   *
+   * Middleware (вызываются в этом порядке):
+   * 1. UploadFileMiddleware - загружает файл
+   * 2. DocumentExistsMiddleware - проверяет существование пользователя
+   * 3. uploadAvatar - основной обработчик
    */
   private async uploadAvatar(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
 
     // Проверяем, что файл был загружен
     if (!req.file) {
-      this.badRequest(res, 'Файл не редан для отгружки');
+      this.badRequest(res, 'Файл не предан для отгрузки');
       return;
     }
 
@@ -148,9 +181,7 @@ export class UserController extends Controller {
     const filename = req.file.filename;
     const avatarPath = `${uploadDir}/${filename}`;
 
-    // TODO: Тут можно добавить проверку существования пользователя
-    // несмотря на то, что ее иходит как квази-миддлвера
-    // Специальные графики не возэникли, так как открыты апи
+    // Пользователь существует - это проверила middleware
     const updatedUser = await this.userService.updateAvatar(id, avatarPath);
 
     if (!updatedUser) {
