@@ -57,6 +57,7 @@ export class Application {
 
   /**
    * Регистрация миддлвер
+   * ВАЖНО: Все миддлвер, обращающиеся к БД, должны вызываться ПОСЛЕ регистрации маршрутов
    */
   private registerMiddlewares(): void {
     // Парсируем JSON тело запроса
@@ -64,6 +65,10 @@ export class Application {
 
     // Парсируем URL-энкодированные данные
     this.expressApp.use(express.urlencoded({ extended: true }));
+
+    // Подключаем раздачу статических файлов (аватары, изображения и т.д.)
+    const uploadDir = this.config.get('uploadDir') as string;
+    this.expressApp.use(express.static(uploadDir));
 
     this.logger.info('Миддлвер зарегистрированы');
   }
