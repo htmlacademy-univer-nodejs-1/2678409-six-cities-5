@@ -11,6 +11,8 @@ import { ExceptionFilter, HttpException, ConflictException, BadRequestException 
 import { UserController } from './controllers/user.controller.js';
 import { OfferController } from './controllers/offer.controller.js';
 import { FavoritesController } from './controllers/favorites.controller.js';
+import { AuthController } from './controllers/auth.controller.js';
+import { CommentController } from './controllers/comment.controller.js';
 
 /**
  * Основное приложение
@@ -27,6 +29,8 @@ export class Application {
     @inject(TYPES.UserController) private readonly userController: UserController,
     @inject(TYPES.OfferController) private readonly offerController: OfferController,
     @inject(TYPES.FavoritesController) private readonly favoritesController: FavoritesController,
+    @inject(TYPES.AuthController) private readonly authController: AuthController,
+    @inject(TYPES.CommentController) private readonly commentController: CommentController,
     @inject(TYPES.ExceptionFilter) private readonly exceptionFilter: ExceptionFilter,
   ) {
     // Инициализируем Express приложение
@@ -57,13 +61,10 @@ export class Application {
 
   /**
    * Регистрация миддлвер
-   * ВАЖНО: Все миддлвер, обращающиеся к БД, должны вызываться ПОСЛЕ регистрации маршрутов
    */
   private registerMiddlewares(): void {
-    // Парсируем JSON тело запроса
     this.expressApp.use(express.json());
 
-    // Парсируем URL-энкодированные данные
     this.expressApp.use(express.urlencoded({ extended: true }));
 
     // Подключаем раздачу статических файлов (аватары, изображения и т.д.)
@@ -80,9 +81,11 @@ export class Application {
   private registerRoutes(): void {
     // Получаем контроллеры
     const controllers: IController[] = [
+      this.authController,
       this.userController,
       this.offerController,
       this.favoritesController,
+      this.commentController,
     ];
 
     // Регистрируем каждый контроллер
@@ -94,21 +97,29 @@ export class Application {
         const handler = asyncHandler(route.handler);
         const fullPath = `/api${route.path}`;
 
+        // Применяем middleware, если они есть
+        const middlewareHandlers = route.middleware
+          ? route.middleware.map((mw) => asyncHandler(mw.execute.bind(mw)))
+          : [];
+
+        // Объединяем middleware и обработчик
+        const allHandlers = [...middlewareHandlers, handler];
+
         switch (route.method) {
           case 'get':
-            this.expressApp.get(fullPath, handler);
+            this.expressApp.get(fullPath, ...allHandlers);
             break;
           case 'post':
-            this.expressApp.post(fullPath, handler);
+            this.expressApp.post(fullPath, ...allHandlers);
             break;
           case 'put':
-            this.expressApp.put(fullPath, handler);
+            this.expressApp.put(fullPath, ...allHandlers);
             break;
           case 'delete':
-            this.expressApp.delete(fullPath, handler);
+            this.expressApp.delete(fullPath, ...allHandlers);
             break;
           case 'patch':
-            this.expressApp.patch(fullPath, handler);
+            this.expressApp.patch(fullPath, ...allHandlers);
             break;
           default:
             break;
@@ -133,7 +144,7 @@ export class Application {
         }
 
         // Обработка ошибок MongoDB
-        const mongoError = err as any;
+        const mongoError = err as unknown as { name?: string; code?: number; keyPattern?: Record<string, unknown>; errors?: Record<string, { message?: string }> };
         if (mongoError.name === 'ValidationError' || mongoError.name === 'MongoServerError') {
           if (mongoError.code === 11000) {
             // Duplicate key error
@@ -147,7 +158,7 @@ export class Application {
             return;
           }
           if (mongoError.name === 'ValidationError') {
-            const messages = Object.values(mongoError.errors || {}).map((e: any) => e.message);
+            const messages = Object.values(mongoError.errors || {}).map((e: { message?: string }) => e.message);
             this.exceptionFilter.catch(
               new BadRequestException(messages.join(', ') || 'Validation error'),
               _req,

@@ -9,16 +9,22 @@ import { UserService } from '../services/user.service.js';
 import { OfferService } from '../services/offer.service.js';
 import { CityService } from '../services/city.service.js';
 import { CommentService } from '../services/comment.service.js';
+import { AuthService } from '../services/auth.service.js';
 import { ImportService } from '../cli/import.service.js';
 import { UserController } from '../app/controllers/user.controller.js';
 import { OfferController } from '../app/controllers/offer.controller.js';
 import { FavoritesController } from '../app/controllers/favorites.controller.js';
+import { AuthController } from '../app/controllers/auth.controller.js';
+import { CommentController } from '../app/controllers/comment.controller.js';
 import { ExceptionFilter } from './exception-filter.js';
 import { IUserService } from '../services/user.service.interface.js';
 import { IOfferService } from '../services/offer.service.interface.js';
 import { ICityService } from '../services/city.service.interface.js';
 import { ICommentService } from '../services/comment.service.interface.js';
+import { IAuthService } from '../services/auth.service.interface.js';
 import { UploadFileMiddleware } from '../app/middleware/upload-file.middleware.js';
+import { AuthenticateMiddleware } from '../app/middleware/authenticate.middleware.js';
+import { OptionalAuthenticateMiddleware } from '../app/middleware/optional-authenticate.middleware.js';
 import { TYPES } from './types.js';
 
 const container = new Container();
@@ -60,6 +66,11 @@ container
   .to(CommentService)
   .inSingletonScope();
 
+container
+  .bind<IAuthService>(TYPES.AuthService)
+  .to(AuthService)
+  .inSingletonScope();
+
 // Регистрация ImportService
 container
   .bind<ImportService>(TYPES.ImportService)
@@ -70,6 +81,18 @@ container
 container
   .bind<UploadFileMiddleware>(TYPES.UploadFileMiddleware)
   .to(UploadFileMiddleware)
+  .inSingletonScope();
+
+// Регистрация AuthenticateMiddleware
+container
+  .bind<AuthenticateMiddleware>(TYPES.AuthenticateMiddleware)
+  .to(AuthenticateMiddleware)
+  .inSingletonScope();
+
+// Регистрация OptionalAuthenticateMiddleware
+container
+  .bind<OptionalAuthenticateMiddleware>(TYPES.OptionalAuthenticateMiddleware)
+  .to(OptionalAuthenticateMiddleware)
   .inSingletonScope();
 
 // Регистрация контроллеров
@@ -86,6 +109,16 @@ container
 container
   .bind<FavoritesController>(TYPES.FavoritesController)
   .to(FavoritesController)
+  .inSingletonScope();
+
+container
+  .bind<AuthController>(TYPES.AuthController)
+  .to(AuthController)
+  .inSingletonScope();
+
+container
+  .bind<CommentController>(TYPES.CommentController)
+  .to(CommentController)
   .inSingletonScope();
 
 // Регистрация ExceptionFilter

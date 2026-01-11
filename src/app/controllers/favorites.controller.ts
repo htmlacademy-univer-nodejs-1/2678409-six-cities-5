@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { injectable, inject } from 'inversify';
 import { plainToInstance } from 'class-transformer';
 import { TYPES } from '../../core/types.js';
@@ -9,6 +9,7 @@ import { Controller } from '../../core/controller.abstract.js';
 import { IRoute } from '../../core/route.interface.js';
 import { OfferResponseDto } from '../dto/offer/offer-response.dto.js';
 import { DocumentExistsMiddlewareFactory } from '../middleware/document-exists.factory.js';
+import { AuthenticateMiddleware } from '../middleware/authenticate.middleware.js';
 import { Logger } from 'pino';
 
 /**
@@ -19,6 +20,7 @@ export class FavoritesController extends Controller {
   constructor(
     @inject(TYPES.OfferService) private readonly offerService: IOfferService,
     @inject(TYPES.UserService) private readonly userService: IUserService,
+    @inject(TYPES.AuthenticateMiddleware) private readonly authenticateMiddleware: AuthenticateMiddleware,
     @inject(TYPES.Logger) private readonly logger: Logger
   ) {
     super('/favorites');
@@ -40,23 +42,30 @@ export class FavoritesController extends Controller {
         path: `${this.controllerRoute}`,
         method: 'get',
         handler: this.index.bind(this),
+        middleware: [this.authenticateMiddleware],
       },
       {
         path: `${this.controllerRoute}/:offerId`,
         method: 'post',
-        // Добавляем middleware проверки существования предложения
+        // Добавляем middleware проверки существования предложения и авторизации
         handler: this.wrapMiddleware(
           documentExistsMiddleware.execute.bind(documentExistsMiddleware),
-          this.add.bind(this)
+          this.wrapMiddleware(
+            this.authenticateMiddleware.execute.bind(this.authenticateMiddleware),
+            this.add.bind(this)
+          )
         ),
       },
       {
         path: `${this.controllerRoute}/:offerId`,
         method: 'delete',
-        // Добавляем middleware проверки существования предложения
+        // Добавляем middleware проверки существования предложения и авторизации
         handler: this.wrapMiddleware(
           documentExistsMiddleware.execute.bind(documentExistsMiddleware),
-          this.remove.bind(this)
+          this.wrapMiddleware(
+            this.authenticateMiddleware.execute.bind(this.authenticateMiddleware),
+            this.remove.bind(this)
+          )
         ),
       },
     ];
@@ -66,14 +75,14 @@ export class FavoritesController extends Controller {
    * Вспомогательный метод для оборачивания middleware в обработчик маршрута
    */
   private wrapMiddleware(
-    middleware: (req: Request, res: Response, next: (err?: any) => void) => Promise<void> | void,
+    middleware: (req: Request, res: Response, next: NextFunction) => Promise<void> | void,
     handler: (req: Request, res: Response) => Promise<void>
   ): (req: Request, res: Response) => Promise<void> {
     return async (req: Request, res: Response) =>
       new Promise<void>((resolve, reject) => {
-        middleware(req, res, (err?: any) => {
+        middleware(req, res, (err?: Error | string) => {
           if (err) {
-            reject(err);
+            reject(err instanceof Error ? err : new Error(err));
             return;
           }
           handler(req, res).then(resolve).catch(reject);
@@ -84,9 +93,12 @@ export class FavoritesController extends Controller {
   /**
    * Получить все избранные предложения
    */
-  private async index(_req: Request, res: Response): Promise<void> {
-    // TODO: Получить userId из токена
-    const userId = '507f1f77bcf86cd799439011'; // Mock userId
+  private async index(req: Request, res: Response): Promise<void> {
+    // Получаем userId из токена (добавлен middleware)
+    if (!req.user) {
+      throw new Error('Пользователь не авторизован');
+    }
+    const userId = req.user._id.toString();
 
     const offers = await this.offerService.findFavorites(userId);
 
@@ -128,8 +140,11 @@ export class FavoritesController extends Controller {
    */
   private async add(req: Request, res: Response): Promise<void> {
     const { offerId } = req.params;
-    // TODO: Получить userId из токена
-    const userId = '507f1f77bcf86cd799439011'; // Mock userId
+    // Получаем userId из токена (добавлен middleware)
+    if (!req.user) {
+      throw new Error('Пользователь не авторизован');
+    }
+    const userId = req.user._id.toString();
 
     // Документ гарантированно существует (проверила middleware)
     const offer = await this.offerService.findById(offerId);
@@ -177,8 +192,11 @@ export class FavoritesController extends Controller {
    */
   private async remove(req: Request, res: Response): Promise<void> {
     const { offerId } = req.params;
-    // TODO: Получить userId из токена
-    const userId = '507f1f77bcf86cd799439011'; // Mock userId
+    // Получаем userId из токена (добавлен middleware)
+    if (!req.user) {
+      throw new Error('Пользователь не авторизован');
+    }
+    const userId = req.user._id.toString();
 
     // Документ гарантированно существует (проверила middleware)
     const offer = await this.offerService.findById(offerId);
