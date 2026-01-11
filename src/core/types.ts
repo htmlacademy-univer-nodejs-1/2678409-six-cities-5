@@ -12,4 +12,5 @@ export const TYPES = {
   OfferController: Symbol.for('OfferController'),
   FavoritesController: Symbol.for('FavoritesController'),
   ExceptionFilter: Symbol.for('ExceptionFilter'),
+  UploadFileMiddleware: Symbol.for('UploadFileMiddleware'),
 };
