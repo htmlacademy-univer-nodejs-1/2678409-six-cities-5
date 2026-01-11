@@ -3,9 +3,14 @@ import { injectable } from 'inversify';
 import { Types } from 'mongoose';
 import { IUser, UserModel, CreateUserData } from '../models/user.entity.js';
 import { IUserService } from './user.service.interface.js';
+import { IDocumentService } from '../core/service.interface.js';
 
+/**
+ * Сервис для работы с пользователями
+ * Реализует интерфейсы IUserService и IDocumentService
+ */
 @injectable()
-export class UserService implements IUserService {
+export class UserService implements IUserService, IDocumentService<IUser> {
   public async findById(id: string | Types.ObjectId): Promise<IUser | null> {
     const user = await UserModel.findById(id).lean().exec();
     return user as IUser | null;
@@ -60,5 +65,28 @@ export class UserService implements IUserService {
       return [];
     }
     return (user as IUser).favoriteOffers || [];
+  }
+
+  /**
+   * Проверить существование пользователя по ID (IDocumentService)
+   */
+  public async exists(id: string): Promise<boolean> {
+    const user = await UserModel.findById(id).lean().exec();
+    return user !== null;
+  }
+
+  /**
+   * Обновить аватар пользователя
+   * @param id - ID пользователя
+   * @param avatarPath - Путь к загруженному аватару
+   * @returns - Обновленный пользователь
+   */
+  public async updateAvatar(id: string, avatarPath: string): Promise<IUser | null> {
+    const user = await UserModel.findByIdAndUpdate(
+      id,
+      { avatar: avatarPath },
+      { new: true }
+    ).lean().exec();
+    return user as IUser | null;
   }
 }

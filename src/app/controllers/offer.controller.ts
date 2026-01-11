@@ -7,9 +7,10 @@ import { IOfferService } from '../../services/offer.service.interface.js';
 import { Controller } from '../../core/controller.abstract.js';
 import { IRoute } from '../../core/route.interface.js';
 import { OfferResponseDto } from '../dto/offer/offer-response.dto.js';
-import { NotFoundException } from '../../core/exception-filter.js';
 import { Types } from 'mongoose';
 import { IOffer } from '../../models/offer.entity.js';
+import { DocumentExistsMiddlewareFactory } from '../middleware/document-exists.factory.js';
+import { Logger } from 'pino';
 
 /**
  * Контроллер для работы с предложениями
@@ -17,7 +18,8 @@ import { IOffer } from '../../models/offer.entity.js';
 @injectable()
 export class OfferController extends Controller {
   constructor(
-    @inject(TYPES.OfferService) private readonly offerService: IOfferService
+    @inject(TYPES.OfferService) private readonly offerService: IOfferService,
+    @inject(TYPES.Logger) private readonly logger: Logger
   ) {
     super('/offers');
   }
@@ -26,6 +28,13 @@ export class OfferController extends Controller {
    * Получить все маршруты контроллера
    */
   public getRoutes(): IRoute[] {
+    // Создаем middleware для проверки существования предложения
+    const documentExistsMiddleware = DocumentExistsMiddlewareFactory.create(
+      this.offerService,
+      'id',
+      this.logger
+    );
+
     return [
       {
         path: `${this.controllerRoute}`,
@@ -40,17 +49,29 @@ export class OfferController extends Controller {
       {
         path: `${this.controllerRoute}/:id`,
         method: 'get',
-        handler: this.show.bind(this),
+        // Добавляем middleware проверки существования
+        handler: this.wrapMiddleware(
+          documentExistsMiddleware.execute.bind(documentExistsMiddleware),
+          this.show.bind(this)
+        ),
       },
       {
         path: `${this.controllerRoute}/:id`,
         method: 'put',
-        handler: this.update.bind(this),
+        // Добавляем middleware проверки существования
+        handler: this.wrapMiddleware(
+          documentExistsMiddleware.execute.bind(documentExistsMiddleware),
+          this.update.bind(this)
+        ),
       },
       {
         path: `${this.controllerRoute}/:id`,
         method: 'delete',
-        handler: this.delete.bind(this),
+        // Добавляем middleware проверки существования
+        handler: this.wrapMiddleware(
+          documentExistsMiddleware.execute.bind(documentExistsMiddleware),
+          this.delete.bind(this)
+        ),
       },
       {
         path: `${this.controllerRoute}/premium/:city`,
@@ -58,6 +79,25 @@ export class OfferController extends Controller {
         handler: this.getPremium.bind(this),
       },
     ];
+  }
+
+  /**
+   * Вспомогательный метод для оборачивания middleware в обработчик маршрута
+   */
+  private wrapMiddleware(
+    middleware: (req: Request, res: Response, next: (err?: any) => void) => Promise<void> | void,
+    handler: (req: Request, res: Response) => Promise<void>
+  ): (req: Request, res: Response) => Promise<void> {
+    return async (req: Request, res: Response) =>
+      new Promise<void>((resolve, reject) => {
+        middleware(req, res, (err?: any) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          handler(req, res).then(resolve).catch(reject);
+        });
+      });
   }
 
   /**
@@ -79,7 +119,7 @@ export class OfferController extends Controller {
           preview: offer.preview,
           images: offer.images,
           isPremium: offer.isPremium,
-          isFavorite: false, // TODO: проверить наличие в исбранным
+          isFavorite: false, // TODO: проверить наличие в исбраным
           rating: offer.rating,
           type: offer.type,
           bedrooms: offer.bedrooms,
@@ -160,13 +200,16 @@ export class OfferController extends Controller {
 
   /**
    * Получить предложение по ID
+   * Middleware уже проверила существование
    */
   private async show(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
 
+    // Документ гарантированно существует (проверила middleware)
     const offer = await this.offerService.findById(id);
     if (!offer) {
-      throw new NotFoundException('Offer not found');
+      // Это не должно произойти, но TypeScript требует проверку
+      return;
     }
 
     const response = plainToInstance(
@@ -201,19 +244,17 @@ export class OfferController extends Controller {
 
   /**
    * Обновить предложение
+   * Middleware уже проверила существование
    */
   private async update(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     // TODO: Проверить, что пользователь - автор
 
-    const offer = await this.offerService.findById(id);
-    if (!offer) {
-      throw new NotFoundException('Offer not found');
-    }
-
+    // Документ гарантированно существует (проверила middleware)
     const updatedOffer = await this.offerService.update(id, req.body);
     if (!updatedOffer) {
-      throw new NotFoundException('Offer not found after update');
+      // Это не должно произойти, но TypeScript требует проверку
+      return;
     }
 
     const response = plainToInstance(
@@ -248,16 +289,13 @@ export class OfferController extends Controller {
 
   /**
    * Удалить предложение
+   * Middleware уже проверила существование
    */
   private async delete(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     // TODO: Проверить, что пользователь - автор
 
-    const offer = await this.offerService.findById(id);
-    if (!offer) {
-      throw new NotFoundException('Offer not found');
-    }
-
+    // Документ гарантированно существует (проверила middleware)
     await this.offerService.delete(id);
 
     this.noContent(res);

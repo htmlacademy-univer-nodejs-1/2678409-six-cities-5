@@ -7,7 +7,7 @@ import { Config } from '../config/config.js';
 import { Database } from '../core/database.js';
 import { TYPES } from '../core/types.js';
 import { IController } from '../core/route.interface.js';
-import { ExceptionFilter, HttpException } from '../core/exception-filter.js';
+import { ExceptionFilter, HttpException, ConflictException, BadRequestException } from '../core/exception-filter.js';
 import { UserController } from './controllers/user.controller.js';
 import { OfferController } from './controllers/offer.controller.js';
 import { FavoritesController } from './controllers/favorites.controller.js';
@@ -57,6 +57,7 @@ export class Application {
 
   /**
    * Регистрация миддлвер
+   * ВАЖНО: Все миддлвер, обращающиеся к БД, должны вызываться ПОСЛЕ регистрации маршрутов
    */
   private registerMiddlewares(): void {
     // Парсируем JSON тело запроса
@@ -64,6 +65,11 @@ export class Application {
 
     // Парсируем URL-энкодированные данные
     this.expressApp.use(express.urlencoded({ extended: true }));
+
+    // Подключаем раздачу статических файлов (аватары, изображения и т.д.)
+    // Файлы будут доступны по URL: http://localhost:3000/uploads/filename
+    const uploadDir = this.config.get('uploadDir') as string;
+    this.expressApp.use('/uploads', express.static(uploadDir));
 
     this.logger.info('Миддлвер зарегистрированы');
   }
@@ -83,25 +89,26 @@ export class Application {
     for (const controller of controllers) {
       const routes = controller.getRoutes();
 
-      // Регистрируем каждый маршрут
+      // Регистрируем каждый маршрут с префиксом /api
       for (const route of routes) {
         const handler = asyncHandler(route.handler);
+        const fullPath = `/api${route.path}`;
 
         switch (route.method) {
           case 'get':
-            this.expressApp.get(route.path, handler);
+            this.expressApp.get(fullPath, handler);
             break;
           case 'post':
-            this.expressApp.post(route.path, handler);
+            this.expressApp.post(fullPath, handler);
             break;
           case 'put':
-            this.expressApp.put(route.path, handler);
+            this.expressApp.put(fullPath, handler);
             break;
           case 'delete':
-            this.expressApp.delete(route.path, handler);
+            this.expressApp.delete(fullPath, handler);
             break;
           case 'patch':
-            this.expressApp.patch(route.path, handler);
+            this.expressApp.patch(fullPath, handler);
             break;
           default:
             break;
@@ -125,11 +132,39 @@ export class Application {
           return;
         }
 
+        // Обработка ошибок MongoDB
+        const mongoError = err as any;
+        if (mongoError.name === 'ValidationError' || mongoError.name === 'MongoServerError') {
+          if (mongoError.code === 11000) {
+            // Duplicate key error
+            const field = Object.keys(mongoError.keyPattern || {})[0] || 'field';
+            this.exceptionFilter.catch(
+              new ConflictException(`${field} already exists`),
+              _req,
+              res,
+              _next
+            );
+            return;
+          }
+          if (mongoError.name === 'ValidationError') {
+            const messages = Object.values(mongoError.errors || {}).map((e: any) => e.message);
+            this.exceptionFilter.catch(
+              new BadRequestException(messages.join(', ') || 'Validation error'),
+              _req,
+              res,
+              _next
+            );
+            return;
+          }
+        }
+
         // Не HttpException - логируем и отправляем 500
         this.logger.error(
           {
             error: err,
             stack: err.stack,
+            name: err.name,
+            message: err.message,
           },
           'Unhandled Error'
         );

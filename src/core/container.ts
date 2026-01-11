@@ -18,6 +18,7 @@ import { IUserService } from '../services/user.service.interface.js';
 import { IOfferService } from '../services/offer.service.interface.js';
 import { ICityService } from '../services/city.service.interface.js';
 import { ICommentService } from '../services/comment.service.interface.js';
+import { UploadFileMiddleware } from '../app/middleware/upload-file.middleware.js';
 import { TYPES } from './types.js';
 
 const container = new Container();
@@ -63,6 +64,12 @@ container
 container
   .bind<ImportService>(TYPES.ImportService)
   .to(ImportService)
+  .inSingletonScope();
+
+// Регистрация UploadFileMiddleware
+container
+  .bind<UploadFileMiddleware>(TYPES.UploadFileMiddleware)
+  .to(UploadFileMiddleware)
   .inSingletonScope();
 
 // Регистрация контроллеров

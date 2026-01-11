@@ -44,7 +44,7 @@ export abstract class Controller implements IController {
   }
 
   /**
-   * Отправить ответ о неверым запросе (400 Bad Request)
+   * Отправить ответ о неверным запросе (400 Bad Request)
    */
   protected badRequest(res: Response, message?: string): void {
     res.status(StatusCodes.BAD_REQUEST).json({
