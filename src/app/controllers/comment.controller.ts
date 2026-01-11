@@ -8,10 +8,10 @@ import { Controller } from '../../core/controller.abstract.js';
 import { IRoute } from '../../core/route.interface.js';
 import { CommentResponseDto } from '../dto/comment/comment-response.dto.js';
 import { CreateCommentDto } from '../dto/comment/create-comment.dto.js';
-import { NotFoundException } from '../../core/exception-filter.js';
 import { ValidateObjectIdMiddleware } from '../middleware/validate-objectid.middleware.js';
 import { validateDto } from '../middleware/validate-dto.middleware.js';
 import { IComment } from '../../models/comment.entity.js';
+import { Types } from 'mongoose';
 
 /**
  * Контроллер для работы с комментариями к предложениям
@@ -63,7 +63,7 @@ export class CommentController extends Controller {
           id: comment._id.toString(),
           text: comment.text,
           rating: comment.rating,
-          date: comment.date.toISOString(),
+          date: comment.createdAt.toISOString(),
           author: {
             id: comment.authorId.toString(),
             name: comment.authorId.toString(), // TODO: подставить имя автора
@@ -81,16 +81,18 @@ export class CommentController extends Controller {
    * Создать новый комментарий для предложения
    */
   private async create(req: Request, res: Response): Promise<void> {
-    const { id: offerId } = req.params;
-    // TODO: Получить authorId из токена
+    const { id: offerIdParam } = req.params;
+    const offerId = new Types.ObjectId(offerIdParam);
+
+
     const authorIdString = '507f1f77bcf86cd799439011'; // Mock userId
+    const authorId = new Types.ObjectId(authorIdString);
 
     const commentData = {
       text: req.body.text,
       rating: req.body.rating,
-      date: new Date(),
       offerId,
-      authorId: authorIdString,
+      authorId,
     };
 
     const comment = await this.commentService.create(commentData);
@@ -101,7 +103,7 @@ export class CommentController extends Controller {
         id: comment._id.toString(),
         text: comment.text,
         rating: comment.rating,
-        date: comment.date.toISOString(),
+        date: comment.updatedAt.toISOString(),
         author: {
           id: comment.authorId.toString(),
           name: comment.authorId.toString(), // TODO: подставить имя автора

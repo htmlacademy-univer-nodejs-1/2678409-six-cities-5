@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { Request, Response, NextFunction } from 'express';
 import { injectable } from 'inversify';
 import { plainToInstance } from 'class-transformer';
-import { validate } from 'class-validator';
+import { validate, ValidationError } from 'class-validator';
 import { StatusCodes } from 'http-status-codes';
 import { IMiddleware } from '../../core/middleware.interface.js';
 
@@ -33,7 +33,7 @@ export class ValidateDtoMiddleware implements IMiddleware {
 
     // Если есть ошибки, отсылаем 400
     if (errors.length > 0) {
-      const messages = errors.map((error) => ({
+      const messages = errors.map((error: ValidationError) => ({
         field: error.property,
         messages: Object.values(error.constraints || {}),
       }));
@@ -54,6 +54,4 @@ export class ValidateDtoMiddleware implements IMiddleware {
  * Фактория для создания миддлвера валидации
  * Метод, который обычно используется для создания миддлвера
  */
-export const validateDto = (dtoClass: any): ValidateDtoMiddleware => {
-  return new ValidateDtoMiddleware(dtoClass);
-};
+export const validateDto = (dtoClass: any): ValidateDtoMiddleware => new ValidateDtoMiddleware(dtoClass);
