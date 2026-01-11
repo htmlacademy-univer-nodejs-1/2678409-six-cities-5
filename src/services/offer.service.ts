@@ -5,10 +5,15 @@ import { IOffer, OfferModel, CreateOfferData, UpdateOfferData } from '../models/
 import { IOfferService } from './offer.service.interface.js';
 import { ICommentService } from './comment.service.interface.js';
 import { IUserService } from './user.service.interface.js';
+import { IDocumentService } from '../core/service.interface.js';
 import { TYPES } from '../core/types.js';
 
+/**
+ * Сервис для работы с предложениями по аренде
+ * Реализует интерфейсы IOfferService и IDocumentService
+ */
 @injectable()
-export class OfferService implements IOfferService {
+export class OfferService implements IOfferService, IDocumentService<IOffer> {
   constructor(
     @inject(TYPES.CommentService) private readonly commentService: ICommentService,
     @inject(TYPES.UserService) private readonly userService: IUserService,
@@ -102,5 +107,13 @@ export class OfferService implements IOfferService {
     }
 
     await OfferModel.findByIdAndUpdate(id, updateData).exec();
+  }
+
+  /**
+   * Проверить существование предложения по ID (IDocumentService)
+   */
+  public async exists(id: string): Promise<boolean> {
+    const offer = await OfferModel.findById(id).lean().exec();
+    return offer !== null;
   }
 }
