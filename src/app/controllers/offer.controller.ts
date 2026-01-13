@@ -66,7 +66,7 @@ export class OfferController extends Controller {
       },
       {
         path: `${this.controllerRoute}/:id`,
-        method: 'put',
+        method: 'patch',
         // Добавляем middleware проверки существования и авторизации
         handler: this.wrapMiddleware(
           documentExistsMiddleware.execute.bind(documentExistsMiddleware),
