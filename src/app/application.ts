@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import express, { Express, Request, Response, NextFunction } from 'express';
 import asyncHandler from 'express-async-handler';
+import cors from 'cors';
 import { injectable, inject } from 'inversify';
 import { Logger } from 'pino';
 import { Config } from '../config/config.js';
@@ -63,6 +64,9 @@ export class Application {
    * Регистрация миддлвер
    */
   private registerMiddlewares(): void {
+    // Подключаем CORS для всех маршрутов
+    this.expressApp.use(cors());
+
     this.expressApp.use(express.json());
 
     this.expressApp.use(express.urlencoded({ extended: true }));
